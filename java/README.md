@@ -70,6 +70,52 @@ Replace `${copilot.sdk.version}` with the latest release from Maven Central.
 implementation 'com.github:copilot-sdk-java:1.0.11-preview.0-SNAPSHOT'
 ```
 
+## In-process mode (experimental)
+
+The SDK supports running the Copilot runtime **in-process** as a native library instead of spawning a separate CLI process. This eliminates process management overhead and simplifies deployment. In-process mode is currently experimental and only supported on **linux-x64**.
+
+Because in-process mode is experimental, see the [Using experimental APIs](#using-experimental-apis) section for how to opt in.
+
+### Additional dependency
+
+Add both the SDK and the platform-specific native runtime to your project:
+
+```xml
+<dependencies>
+    <!-- Pure-Java SDK (~1.5 MB) -->
+    <dependency>
+        <groupId>com.github</groupId>
+        <artifactId>copilot-sdk-java</artifactId>
+        <version>${copilot.version}</version>
+    </dependency>
+    <!-- Native runtime for linux-x64 (~20-26 MB) -->
+    <dependency>
+        <groupId>com.github</groupId>
+        <artifactId>copilot-sdk-java-runtime</artifactId>
+        <version>${copilot.version}</version>
+        <classifier>linux-x64</classifier>
+    </dependency>
+    <!-- JNA (required for in-process mode) -->
+    <dependency>
+        <groupId>net.java.dev.jna</groupId>
+        <artifactId>jna</artifactId>
+        <version>5.19.1</version>
+    </dependency>
+</dependencies>
+```
+
+### Usage
+
+Configure the client to use the in-process connection:
+
+```java
+CopilotClientOptions options = new CopilotClientOptions()
+    .setConnection(RuntimeConnection.forInProcess());
+
+CopilotClient client = new CopilotClient(options);
+client.start().get();
+```
+
 ## Quick Start
 
 ```java
@@ -156,12 +202,12 @@ PermissionHandler handler = (request, invocation) -> {
 
 You can run the SDK without setting up a full Java project, by using [JBang](https://www.jbang.dev/).
 
-See the full source of [`jbang-example.java`](jbang-example.java) for a complete example with more features like session idle handling and usage info events.
+See the full source of [`jbang-example.java`](sdk/jbang-example.java) for a complete example with more features like session idle handling and usage info events.
 
 Or run it directly from the repository:
 
 ```bash
-jbang https://github.com/github/copilot-sdk/blob/main/java/jbang-example.java
+jbang https://github.com/github/copilot-sdk/blob/main/java/sdk/jbang-example.java
 ```
 
 ## Annotation-based tools and `ToolInvocation` context
@@ -443,4 +489,4 @@ mvn jacoco:prepare-agent@wire-up-coverage-instrumentation antrun:run@print-test-
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+MIT — see [LICENSE](sdk/LICENSE) for details.
