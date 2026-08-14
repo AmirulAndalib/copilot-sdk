@@ -5773,7 +5773,9 @@ pub use crate::generated::api_types::{
     Model, ModelBilling, ModelBillingTokenPrices, ModelBillingTokenPricesLongContext,
     ModelCapabilities, ModelCapabilitiesLimits, ModelCapabilitiesLimitsVision,
     ModelCapabilitiesSupports, ModelList, ModelPolicy, PermissionDecision,
-    PermissionDecisionApproveOnce, PermissionDecisionReject, PermissionDecisionUserNotAvailable,
+    PermissionDecisionApproveOnce, PermissionDecisionContext, PermissionDecisionOutcome,
+    PermissionDecisionReject, PermissionDecisionSource, PermissionDecisionSurface,
+    PermissionDecisionUserNotAvailable,
 };
 
 /// Permission categories the CLI may request approval for.
@@ -7605,7 +7607,10 @@ mod permission_builder_tests {
         let h = resolve_create(cfg).expect("policy + handler yields handler");
         assert!(matches!(
             dispatch(&h).await,
-            PermissionResult::Decision(PermissionDecision::ApproveOnce(_))
+            PermissionResult::Decision {
+                decision: PermissionDecision::ApproveOnce(_),
+                ..
+            }
         ));
     }
 
@@ -7615,7 +7620,10 @@ mod permission_builder_tests {
         let h = resolve_create(cfg).expect("policy alone yields handler");
         assert!(matches!(
             dispatch(&h).await,
-            PermissionResult::Decision(PermissionDecision::ApproveOnce(_))
+            PermissionResult::Decision {
+                decision: PermissionDecision::ApproveOnce(_),
+                ..
+            }
         ));
     }
 
@@ -7633,11 +7641,17 @@ mod permission_builder_tests {
         let hb = resolve_create(b).unwrap();
         assert!(matches!(
             dispatch(&ha).await,
-            PermissionResult::Decision(PermissionDecision::ApproveOnce(_))
+            PermissionResult::Decision {
+                decision: PermissionDecision::ApproveOnce(_),
+                ..
+            }
         ));
         assert!(matches!(
             dispatch(&hb).await,
-            PermissionResult::Decision(PermissionDecision::ApproveOnce(_))
+            PermissionResult::Decision {
+                decision: PermissionDecision::ApproveOnce(_),
+                ..
+            }
         ));
     }
 
@@ -7653,11 +7667,17 @@ mod permission_builder_tests {
         let hb = resolve_create(b).unwrap();
         assert!(matches!(
             dispatch(&ha).await,
-            PermissionResult::Decision(PermissionDecision::Reject(_))
+            PermissionResult::Decision {
+                decision: PermissionDecision::Reject(_),
+                ..
+            }
         ));
         assert!(matches!(
             dispatch(&hb).await,
-            PermissionResult::Decision(PermissionDecision::Reject(_))
+            PermissionResult::Decision {
+                decision: PermissionDecision::Reject(_),
+                ..
+            }
         ));
     }
 
@@ -7669,7 +7689,10 @@ mod permission_builder_tests {
         let h = resolve_create(cfg).unwrap();
         assert!(matches!(
             dispatch(&h).await,
-            PermissionResult::Decision(PermissionDecision::Reject(_))
+            PermissionResult::Decision {
+                decision: PermissionDecision::Reject(_),
+                ..
+            }
         ));
     }
 
@@ -7688,11 +7711,17 @@ mod permission_builder_tests {
         let hb = resolve_create(b).unwrap();
         assert!(matches!(
             dispatch(&ha).await,
-            PermissionResult::Decision(PermissionDecision::Reject(_))
+            PermissionResult::Decision {
+                decision: PermissionDecision::Reject(_),
+                ..
+            }
         ));
         assert!(matches!(
             dispatch(&hb).await,
-            PermissionResult::Decision(PermissionDecision::Reject(_))
+            PermissionResult::Decision {
+                decision: PermissionDecision::Reject(_),
+                ..
+            }
         ));
     }
 
@@ -7704,7 +7733,10 @@ mod permission_builder_tests {
         let h = resolve_resume(cfg).unwrap();
         assert!(matches!(
             dispatch(&h).await,
-            PermissionResult::Decision(PermissionDecision::ApproveOnce(_))
+            PermissionResult::Decision {
+                decision: PermissionDecision::ApproveOnce(_),
+                ..
+            }
         ));
     }
 
@@ -7720,11 +7752,17 @@ mod permission_builder_tests {
         let hb = resolve_resume(b).unwrap();
         assert!(matches!(
             dispatch(&ha).await,
-            PermissionResult::Decision(PermissionDecision::ApproveOnce(_))
+            PermissionResult::Decision {
+                decision: PermissionDecision::ApproveOnce(_),
+                ..
+            }
         ));
         assert!(matches!(
             dispatch(&hb).await,
-            PermissionResult::Decision(PermissionDecision::ApproveOnce(_))
+            PermissionResult::Decision {
+                decision: PermissionDecision::ApproveOnce(_),
+                ..
+            }
         ));
     }
 
