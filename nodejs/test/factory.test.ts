@@ -655,7 +655,8 @@ describe("factories", () => {
         expect(resumeSessionForExtension).toHaveBeenCalledWith(
             "session-extension",
             expect.objectContaining({ suppressResumeEvent: true }),
-            [factory]
+            [factory],
+            undefined
         );
     });
 
