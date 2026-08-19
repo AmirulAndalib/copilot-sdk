@@ -1215,7 +1215,7 @@ public sealed partial class CopilotClient : IDisposable, IAsyncDisposable
                 config.DisabledSkills,
                 config.InfiniteSessions,
                 config.SessionLimits,
-                Commands: config.Commands?.Select(c => new CommandWireDefinition(c.Name, c.Description)).ToList(),
+                Commands: config.Commands?.Select(c => new CommandWireDefinition(c.Name, c.Description ?? string.Empty)).ToList(),
                 RequestElicitation: config.OnElicitationRequest != null,
                 RequestMcpApps: config.EnableMcpApps ? true : null,
                 Traceparent: traceparent,
@@ -1436,7 +1436,7 @@ public sealed partial class CopilotClient : IDisposable, IAsyncDisposable
                 config.DisabledSkills,
                 config.InfiniteSessions,
                 config.SessionLimits,
-                Commands: config.Commands?.Select(c => new CommandWireDefinition(c.Name, c.Description)).ToList(),
+                Commands: config.Commands?.Select(c => new CommandWireDefinition(c.Name, c.Description ?? string.Empty)).ToList(),
                 RequestElicitation: config.OnElicitationRequest != null,
                 RequestMcpApps: config.EnableMcpApps ? true : null,
                 Traceparent: traceparent,
@@ -1479,6 +1479,15 @@ public sealed partial class CopilotClient : IDisposable, IAsyncDisposable
             session.WorkspacePath = response.WorkspacePath;
             session.SetCapabilities(response.Capabilities);
             session.SetOpenCanvases(response.OpenCanvases);
+
+            if (config.McpServers is not null)
+            {
+                await InvokeRpcAsync<JsonElement>(
+                    connection.Rpc,
+                    "session.mcp.reloadWithConfig",
+                    [new ReloadMcpServersRequest(sessionId, new ReloadMcpServersConfig(config.McpServers))],
+                    cancellationToken);
+            }
 
             if (config.OnMcpAuthRequest is not null)
             {
@@ -2952,9 +2961,16 @@ public sealed partial class CopilotClient : IDisposable, IAsyncDisposable
         IList<OpenCanvasInstance>? OpenCanvases = null);
 #pragma warning restore GHCP001
 
+    internal record ReloadMcpServersRequest(
+        string SessionId,
+        ReloadMcpServersConfig Config);
+
+    internal record ReloadMcpServersConfig(
+        IDictionary<string, McpServerConfig> McpServers);
+
     internal record CommandWireDefinition(
         string Name,
-        string? Description);
+        string Description);
 
     internal record GetLastSessionIdResponse(
         string? SessionId);
@@ -3028,6 +3044,8 @@ public sealed partial class CopilotClient : IDisposable, IAsyncDisposable
     [JsonSerializable(typeof(CapiSessionOptions))]
     [JsonSerializable(typeof(NamedProviderConfig))]
     [JsonSerializable(typeof(ProviderModelConfig))]
+    [JsonSerializable(typeof(ReloadMcpServersConfig))]
+    [JsonSerializable(typeof(ReloadMcpServersRequest))]
     [JsonSerializable(typeof(SessionLimitsConfig))]
     [JsonSerializable(typeof(ResumeSessionRequest))]
     [JsonSerializable(typeof(ResumeSessionResponse))]

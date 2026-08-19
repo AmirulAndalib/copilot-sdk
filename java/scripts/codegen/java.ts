@@ -66,6 +66,24 @@ function normalizeBrandCasingNode(node: unknown): void {
     if (node === null || typeof node !== "object") return;
     const obj = node as Record<string, unknown>;
 
+    if (obj.title === "ProviderModelConfig" && obj.properties && typeof obj.properties === "object") {
+        const tokenFields = new Set([
+            "maxPromptTokens",
+            "maxContextWindowTokens",
+            "maxOutputTokens",
+        ]);
+        for (const [key, value] of Object.entries(obj.properties as Record<string, unknown>)) {
+            if (
+                tokenFields.has(key) &&
+                value !== null &&
+                typeof value === "object" &&
+                (value as Record<string, unknown>).type === "number"
+            ) {
+                (value as Record<string, unknown>).type = "integer";
+            }
+        }
+    }
+
     for (const defsKey of ["definitions", "$defs"] as const) {
         const defs = obj[defsKey];
         if (defs && typeof defs === "object" && !Array.isArray(defs)) {
@@ -232,6 +250,7 @@ interface JavaTypeResult {
 // Set before each schema generation pass; used by schemaTypeToJava and helpers.
 let currentDefinitions: Record<string, JSONSchema7> = {};
 const pendingStandaloneTypes = new Map<string, JSONSchema7>();
+const generatedSessionEventTypeNames = new Set<string>();
 
 // Cross-schema definitions: keyed by schema filename (e.g. "session-events.schema.json"),
 // value is the definitions map from that schema. Populated by generateRpcTypes so that
@@ -573,21 +592,15 @@ function schemaTypeToJava(
         if (crossSchemaMatch) {
             const [, schemaFile, typeName] = crossSchemaMatch;
             const externalDefs = crossSchemaDefinitions.get(schemaFile);
-            if (externalDefs) {
-                const resolved = externalDefs[typeName];
-                if (resolved) {
-                    // Save and swap currentDefinitions so recursive calls resolve against
-                    // the external schema's definitions.
-                    const savedDefs = currentDefinitions;
-                    currentDefinitions = externalDefs;
-                    const result = schemaTypeToJava(resolved, required, context, propName, nestedTypes);
-                    currentDefinitions = savedDefs;
-                    return result;
-                }
+            if (
+                schemaFile === "session-events.schema.json"
+                && externalDefs?.[typeName]
+                && generatedSessionEventTypeNames.has(typeName)
+            ) {
+                imports.add(`com.github.copilot.generated.${typeName}`);
+                return { javaType: typeName, imports };
             }
-            // Fallback: extract just the type name and warn
-            console.warn(`[codegen] Unresolved cross-schema $ref: ${schema.$ref}`);
-            return { javaType: typeName, imports };
+            return { javaType: "Object", imports };
         }
 
         const name = schema.$ref.replace(/^#\/definitions\//, "");
@@ -791,6 +804,13 @@ async function generateSessionEvents(schemaPath: string): Promise<void> {
 
     // Generate standalone types discovered via $ref resolution
     await generatePendingStandaloneTypes(packageName, packageDir, GENERATED_FROM_SESSION_EVENTS);
+
+    generatedSessionEventTypeNames.clear();
+    for (const entry of await fs.readdir(path.join(REPO_ROOT, packageDir), { withFileTypes: true })) {
+        if (entry.isFile() && entry.name.endsWith(".java")) {
+            generatedSessionEventTypeNames.add(path.basename(entry.name, ".java"));
+        }
+    }
 
     console.log(`✅ Generated ${variants.length + 1} session event files`);
 }

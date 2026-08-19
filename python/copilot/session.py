@@ -27,9 +27,7 @@ from ._jsonrpc import JsonRpcError, ProcessExitedError
 from ._telemetry import get_trace_context, trace_context
 from .canvas import CanvasError, CanvasHandler, OpenCanvasInstance
 from .generated.rpc import (
-    CanvasHandler as RpcCanvasHandler,
-)
-from .generated.rpc import (
+    BuiltinToolInputSchemaType,
     CanvasProviderCloseRequest,
     CanvasProviderInvokeActionRequest,
     CanvasProviderOpenRequest,
@@ -57,8 +55,10 @@ from .generated.rpc import (
     UIElicitationSchema,
     UIElicitationSchemaProperty,
     UIElicitationSchemaPropertyType,
-    UIElicitationSchemaType,
     UIHandlePendingElicitationRequest,
+)
+from .generated.rpc import (
+    CanvasHandler as RpcCanvasHandler,
 )
 from .generated.rpc import (
     ContextTier as _RpcContextTier,
@@ -761,7 +761,7 @@ class SessionUiApi:
             UIElicitationRequest(
                 message=message,
                 requested_schema=UIElicitationSchema(
-                    type=UIElicitationSchemaType.OBJECT,
+                    type=BuiltinToolInputSchemaType.OBJECT,
                     properties={
                         "confirmed": UIElicitationSchemaProperty(
                             type=UIElicitationSchemaPropertyType.BOOLEAN,
@@ -796,7 +796,7 @@ class SessionUiApi:
             UIElicitationRequest(
                 message=message,
                 requested_schema=UIElicitationSchema(
-                    type=UIElicitationSchemaType.OBJECT,
+                    type=BuiltinToolInputSchemaType.OBJECT,
                     properties={
                         "selection": UIElicitationSchemaProperty(
                             type=UIElicitationSchemaPropertyType.STRING,

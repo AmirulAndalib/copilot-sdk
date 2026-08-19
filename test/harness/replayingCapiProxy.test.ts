@@ -546,9 +546,9 @@ Always include PINEAPPLE_COCONUT_42.
     expect(toolMessage?.content).toBe("Tool 'report_intent' does not exist.");
   });
 
-  test("removes runtime advisories from background agent start results", async () => {
+  test("normalizes background agent IDs and removes runtime advisories", async () => {
     const stableResult =
-      "Agent started in background with agent_id: read-file. You'll be notified when it completes. Tell the user you're waiting and end your response, or continue unrelated work until notified.";
+      "Agent started in background with agent_id: background-agent. You'll be notified when it completes. Tell the user you're waiting and end your response, or continue unrelated work until notified.";
     const requestBody = JSON.stringify({
       messages: [
         { role: "user", content: "Help me" },
@@ -565,7 +565,8 @@ Always include PINEAPPLE_COCONUT_42.
         {
           role: "tool",
           tool_call_id: "tc1",
-          content: `${stableResult} The agent supports multi-turn conversations.`,
+          content:
+            "Agent started in background with agent_id: 3e0c7565-6091-58cb-85bb-6cb14db23ef7. You'll be notified when it completes. Tell the user you're waiting and end your response, or continue unrelated work until notified. The agent supports multi-turn conversations.",
         },
       ],
     });
@@ -1156,6 +1157,112 @@ Always include PINEAPPLE_COCONUT_42.
           (JSON.parse(response.body) as ChatCompletion).choices[0].message
             .content,
         ).toBe("Read agent completed.");
+      } finally {
+        await proxy.stop();
+      }
+    });
+
+    test("replays background agent calls with the runtime-generated ID", async () => {
+      const cachePath = path.join(tempDir, "cache.yaml");
+      const startResult =
+        "Agent started in background with agent_id: read-file. You'll be notified when it completes. Tell the user you're waiting and end your response, or continue unrelated work until notified.";
+      const notification =
+        '<system_notification>\nAgent "read-file" (explore) has completed successfully. Use read_agent with agent_id "read-file" to retrieve the full results.\n</system_notification>';
+      const cacheContent = yaml.stringify({
+        models: ["test-model"],
+        conversations: [
+          {
+            messages: [
+              { role: "system", content: "${system}" },
+              { role: "user", content: "Read the file" },
+              {
+                role: "assistant",
+                tool_calls: [
+                  {
+                    id: "toolcall_0",
+                    type: "function",
+                    function: {
+                      name: "task",
+                      arguments:
+                        '{"agent_type":"explore","name":"read-file","prompt":"Read it","mode":"background"}',
+                    },
+                  },
+                ],
+              },
+              {
+                role: "tool",
+                tool_call_id: "toolcall_0",
+                content: startResult,
+              },
+              { role: "assistant", content: "Waiting." },
+              { role: "user", content: notification },
+              {
+                role: "assistant",
+                tool_calls: [
+                  {
+                    id: "toolcall_1",
+                    type: "function",
+                    function: {
+                      name: "read_agent",
+                      arguments: '{"agent_id":"read-file","wait":true}',
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      } satisfies NormalizedData);
+      await writeFile(cachePath, cacheContent);
+
+      const proxy = new ReplayingCapiProxy(
+        "http://localhost:9999",
+        cachePath,
+        workDir,
+      );
+      const proxyUrl = await proxy.start();
+      const runtimeAgentId = "3e0c7565-6091-58cb-85bb-6cb14db23ef7";
+
+      try {
+        const response = await makeRequest(proxyUrl, "/chat/completions", {
+          body: {
+            model: "test-model",
+            messages: [
+              { role: "system", content: "Be helpful" },
+              { role: "user", content: "Read the file" },
+              {
+                role: "assistant",
+                tool_calls: [
+                  {
+                    id: "runtime-call-id",
+                    type: "function",
+                    function: {
+                      name: "task",
+                      arguments:
+                        '{"agent_type":"explore","name":"read-file","prompt":"Read it","mode":"background"}',
+                    },
+                  },
+                ],
+              },
+              {
+                role: "tool",
+                tool_call_id: "runtime-call-id",
+                content: startResult.replace("read-file", runtimeAgentId),
+              },
+              { role: "assistant", content: "Waiting." },
+              { role: "user", content: notification },
+            ],
+          },
+        });
+
+        expect(response.status).toBe(200);
+        const parsed = JSON.parse(response.body) as ChatCompletion;
+        const toolCall = parsed.choices[0].message
+          .tool_calls![0] as ChatCompletionMessageFunctionToolCall;
+        expect(JSON.parse(toolCall.function.arguments)).toEqual({
+          agent_id: runtimeAgentId,
+          wait: true,
+        });
       } finally {
         await proxy.stop();
       }

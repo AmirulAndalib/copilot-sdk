@@ -540,13 +540,20 @@ impl Session {
     pub async fn set_model(&self, model: &str, opts: Option<SetModelOptions>) -> Result<(), Error> {
         let opts = opts.unwrap_or_default();
         let request = ModelSwitchToRequest {
+            compaction_decision: None,
+            context_tier: opts.context_tier,
+            defer_if_model_change_queued: None,
+            model_capabilities: opts.model_capabilities,
+            model_change_scope: None,
             model_id: model.to_string(),
+            picker_persistence: None,
             reasoning_effort: opts.reasoning_effort,
             reasoning_summary: opts.reasoning_summary,
+            repo_scope: None,
+            require_available: None,
+            run_compaction_preflight: None,
+            source: None,
             verbosity: None,
-            context_tier: opts.context_tier,
-            model_capabilities: opts.model_capabilities,
-            defer_if_model_change_queued: None,
         };
         self.rpc().model().switch_to(request).await?;
         Ok(())
@@ -1285,6 +1292,20 @@ impl Client {
                 returned: cli_session_id,
             })
             .into());
+        }
+        if let Some(mcp_servers) = wire.mcp_servers.as_ref()
+            && let Err(error) = self
+                .call(
+                    "session.mcp.reloadWithConfig",
+                    Some(serde_json::json!({
+                        "sessionId": session_id,
+                        "config": { "mcpServers": mcp_servers },
+                    })),
+                )
+                .await
+        {
+            registration.cleanup(event_loop).await;
+            return Err(error);
         }
         if has_mcp_auth_handler {
             register_mcp_auth_interest(self, &session_id).await?;
