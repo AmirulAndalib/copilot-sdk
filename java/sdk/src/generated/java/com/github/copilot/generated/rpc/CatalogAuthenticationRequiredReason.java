@@ -10,28 +10,28 @@ package com.github.copilot.generated.rpc;
 import javax.annotation.processing.Generated;
 
 /**
- * Current or requested allow-all mode.
+ * Why the catalog authority did not accept the caller's identity
  *
  * @since 1.0.0
  */
 @javax.annotation.processing.Generated("copilot-sdk-codegen")
-public enum PermissionsAllowAllMode {
-    /** The {@code off} variant. */
-    OFF("off"),
-    /** The {@code on} variant. */
-    ON("on"),
-    /** The {@code auto} variant. */
-    AUTO("auto");
+public enum CatalogAuthenticationRequiredReason {
+    /** The {@code no-credential} variant. */
+    NO_CREDENTIAL("no-credential"),
+    /** The {@code credential-expired} variant. */
+    CREDENTIAL_EXPIRED("credential-expired"),
+    /** The {@code credential-rejected} variant. */
+    CREDENTIAL_REJECTED("credential-rejected");
 
     private final String value;
-    PermissionsAllowAllMode(String value) { this.value = value; }
+    CatalogAuthenticationRequiredReason(String value) { this.value = value; }
     @com.fasterxml.jackson.annotation.JsonValue
     public String getValue() { return value; }
     @com.fasterxml.jackson.annotation.JsonCreator
-    public static PermissionsAllowAllMode fromValue(String value) {
-        for (PermissionsAllowAllMode v : values()) {
+    public static CatalogAuthenticationRequiredReason fromValue(String value) {
+        for (CatalogAuthenticationRequiredReason v : values()) {
             if (v.value.equals(value)) return v;
         }
-        throw new IllegalArgumentException("Unknown PermissionsAllowAllMode value: " + value);
+        throw new IllegalArgumentException("Unknown CatalogAuthenticationRequiredReason value: " + value);
     }
 }

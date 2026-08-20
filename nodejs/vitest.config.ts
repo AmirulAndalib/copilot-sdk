@@ -5,13 +5,10 @@ const integrationTestTimeout = process.platform === "win32" ? 60000 : 30000;
 const isInProcessTransport =
     (process.env.COPILOT_SDK_DEFAULT_CONNECTION ?? "").toLowerCase() === "inprocess";
 
-// TODO(cli-1.0.81-2): under @github/copilot 1.0.81-2 every model-driven turn hangs when the
-// runtime is hosted in-process (FFI). The session never reaches idle, so each test fails on
-// its own timeout with no error surfaced by the runtime; suites that only exercise RPC
-// without a model turn still pass. The same suites pass on the default (stdio) cell on all
-// three OSes, and they all passed in-process on 1.0.76-5, so the lost coverage is limited to
-// the transport rather than the behavior. Delete this list once a @github/copilot build
-// carrying the fix is picked up.
+// TODO(cli-1.0.81-4): model-driven turns eventually stop completing when the runtime is
+// hosted in-process against CAPI. The shared runtime then poisons every later model-driven
+// test until the job times out. These suites still run over stdio on all three OSes, while
+// pure-RPC in-process coverage remains enabled.
 const inProcessBlockedE2E = [
     "**/test/e2e/abort.e2e.test.ts",
     "**/test/e2e/agent_and_compact_rpc.e2e.test.ts",

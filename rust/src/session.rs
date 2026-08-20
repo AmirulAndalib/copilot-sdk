@@ -2612,7 +2612,7 @@ mod tests {
     fn attribution_context() -> PermissionDecisionContext {
         PermissionDecisionContext {
             outcome: PermissionDecisionOutcome::AutoApproved,
-            source: PermissionDecisionSource::JudgeRecommendation,
+            source: PermissionDecisionSource::AssistedApproval,
             surface: PermissionDecisionSurface::CopilotApp,
         }
     }
@@ -2667,7 +2667,7 @@ mod tests {
                 "result": { "kind": "approve-once" },
                 "decisionContext": {
                     "outcome": "auto_approved",
-                    "source": "judge_recommendation",
+                    "source": "assisted_approval",
                     "surface": "copilot_app",
                 },
             })

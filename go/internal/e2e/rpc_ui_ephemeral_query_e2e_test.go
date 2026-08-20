@@ -14,10 +14,10 @@ func TestRpcUiEphemeralQuery(t *testing.T) {
 	t.Cleanup(func() { client.ForceStop() })
 
 	t.Run("should_answer_ephemeral_query", func(t *testing.T) {
-		// TODO(cli-1.0.81-2): CLI 1.0.81-2 fails session.ui.ephemeralQuery against the
+		// TODO(cli-1.0.81-2): CLI 1.0.81-4 still fails session.ui.ephemeralQuery against the
 		// recorded snapshot ("Failed to get response from the AI model"). Re-enable once
 		// the runtime fix ships.
-		t.Skip("blocked on CLI 1.0.81-2 session.ui.ephemeralQuery regression")
+		t.Skip("blocked on CLI 1.0.81-4 session.ui.ephemeralQuery regression")
 
 		ctx.ConfigureForTest(t)
 		session := createPortedSession(t, client, nil)
