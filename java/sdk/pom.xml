@@ -630,11 +630,11 @@ did not produce the multi-release output. Re-build on JDK 25+ and verify the
                             <forkCount>1</forkCount>
                             <parallel>none</parallel>
                             <!--
-                                TODO(cli-1.0.81-4): model-driven turns eventually stop
-                                completing when the runtime is hosted in-process against
-                                CAPI. The shared runtime then poisons every later
-                                model-driven test. These classes still run over stdio;
-                                pure-RPC in-process coverage remains enabled.
+                                TODO(cli-1.0.81-2): CLI 1.0.81-5 still stops
+                                completing model-driven turns when hosted in-process
+                                against CAPI. The shared runtime then poisons every
+                                later model-driven test. These classes still run over
+                                stdio; pure-RPC in-process coverage remains enabled.
                             -->
                             <excludes>
                                 <exclude>**/AskUserTest.java</exclude>
@@ -671,8 +671,8 @@ did not produce the multi-release output. Re-build on JDK 25+ and verify the
                             <forkCount>1</forkCount>
                             <parallel>none</parallel>
                             <!--
-                                TODO(cli-1.0.81-4): same in-process CAPI turn hang as the
-                                Surefire exclusions above.
+                                TODO(cli-1.0.81-2): same in-process CAPI turn hang as
+                                the Surefire exclusions above.
                             -->
                             <excludes>
                                 <exclude>**/ErgonomicToolDefinitionIT.java</exclude>

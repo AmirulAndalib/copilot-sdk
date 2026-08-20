@@ -5,9 +5,9 @@ const integrationTestTimeout = process.platform === "win32" ? 60000 : 30000;
 const isInProcessTransport =
     (process.env.COPILOT_SDK_DEFAULT_CONNECTION ?? "").toLowerCase() === "inprocess";
 
-// TODO(cli-1.0.81-4): model-driven turns eventually stop completing when the runtime is
-// hosted in-process against CAPI. The shared runtime then poisons every later model-driven
-// test until the job times out. These suites still run over stdio on all three OSes, while
+// TODO(cli-1.0.81-2): CLI 1.0.81-5 still stops completing model-driven turns when
+// hosted in-process against CAPI. The shared runtime then poisons every later
+// model-driven test. These suites still run over stdio on all three OSes, while
 // pure-RPC in-process coverage remains enabled.
 const inProcessBlockedE2E = [
     "**/test/e2e/abort.e2e.test.ts",
