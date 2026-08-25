@@ -5,21 +5,30 @@
 import { pathToFileURL } from "node:url";
 
 export function validateNativeHost(classifier, host) {
-  if (classifier !== "linux-x64") {
-    throw new Error(`Unsupported native build classifier: ${classifier}`);
-  }
-  if (host.platform !== "linux" || host.arch !== "x64") {
-    throw new Error(
-      `Native ${classifier} packaging requires Linux x64; detected ${host.platform}-${host.arch}`,
-    );
-  }
-  if (!host.glibcVersionRuntime) {
-    throw new Error(
-      `Native ${classifier} packaging requires glibc; musl and unknown libc hosts are unsupported`,
-    );
+  if (classifier === "linux-x64") {
+    if (host.platform !== "linux" || host.arch !== "x64") {
+      throw new Error(
+        `Native ${classifier} packaging requires Linux x64; detected ${host.platform}-${host.arch}`,
+      );
+    }
+    if (!host.glibcVersionRuntime) {
+      throw new Error(
+        `Native ${classifier} packaging requires glibc; musl and unknown libc hosts are unsupported`,
+      );
+    }
+    return `Validated native build host: ${classifier} (glibc ${host.glibcVersionRuntime})`;
   }
 
-  return `Validated native build host: ${classifier} (glibc ${host.glibcVersionRuntime})`;
+  if (classifier === "win32-x64") {
+    if (host.platform !== "win32" || host.arch !== "x64") {
+      throw new Error(
+        `Native ${classifier} packaging requires Windows x64; detected ${host.platform}-${host.arch}`,
+      );
+    }
+    return `Validated native build host: ${classifier}`;
+  }
+
+  throw new Error(`Unsupported native build classifier: ${classifier}`);
 }
 
 export function detectNativeHost() {
