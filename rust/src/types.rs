@@ -1760,13 +1760,14 @@ pub struct CopilotExpAssignmentResponse {
     pub assignment_context: String,
 }
 
-/// Controls whether bypass-permissions mode is available in a managed session.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-#[non_exhaustive]
-pub enum DisableBypassPermissionsMode {
-    /// Turn off bypass-permissions mode.
-    Disable,
+/// Well-known managed bypass-permissions policies.
+pub struct DisableBypassPermissionsModes;
+
+impl DisableBypassPermissionsModes {
+    /// Permit automatic bypass but block full allow-all.
+    pub const ALLOW_AUTO_ONLY: &'static str = "allow-auto-only";
+    /// Turn off bypass-permissions mode entirely.
+    pub const DISABLE: &'static str = "disable";
 }
 
 /// Permission rules injected as a managed-settings layer at session bootstrap.
@@ -1775,18 +1776,17 @@ pub enum DisableBypassPermissionsMode {
 /// layer. This layer composes restrictively with any server- or device-level
 /// managed settings: [`deny`](Self::deny) and [`ask`](Self::ask) rules are
 /// unioned across layers, every present [`allow`](Self::allow) list must admit a
-/// tool for it to be allowed, and
-/// [`disable_bypass_permissions_mode`](Self::disable_bypass_permissions_mode) is
-/// honored if any layer sets it (deny-wins).
+/// tool for it to be allowed, and bypass-mode restrictions compose to the most
+/// restrictive setting.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub struct ManagedSettingsPermissions {
-    /// When set to `"disable"`, bypass-permissions mode is turned off for the
-    /// session regardless of other layers. Serialized as
-    /// `disableBypassPermissionsMode`.
+    /// Restricts bypass-permissions mode for the session. See
+    /// [`DisableBypassPermissionsModes`] for well-known values. Unknown values
+    /// are forwarded so newer runtime policies fail closed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub disable_bypass_permissions_mode: Option<DisableBypassPermissionsMode>,
+    pub disable_bypass_permissions_mode: Option<String>,
     /// Tool-permission patterns that are always denied.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub deny: Option<Vec<String>>,
@@ -1800,11 +1800,8 @@ pub struct ManagedSettingsPermissions {
 
 impl ManagedSettingsPermissions {
     /// Sets the bypass-permissions policy for this managed layer.
-    pub fn with_disable_bypass_permissions_mode(
-        mut self,
-        value: DisableBypassPermissionsMode,
-    ) -> Self {
-        self.disable_bypass_permissions_mode = Some(value);
+    pub fn with_disable_bypass_permissions_mode(mut self, value: impl Into<String>) -> Self {
+        self.disable_bypass_permissions_mode = Some(value.into());
         self
     }
 
