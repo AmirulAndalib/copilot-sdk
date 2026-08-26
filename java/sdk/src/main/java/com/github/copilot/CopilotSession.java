@@ -198,6 +198,7 @@ public final class CopilotSession implements AutoCloseable {
     private volatile Map<String, java.util.function.Function<String, CompletableFuture<String>>> transformCallbacks;
     private final ScheduledExecutorService timeoutScheduler;
     private volatile Executor executor;
+    private volatile GitHubTokenProviderRegistry.Registration gitHubTokenProviderRegistration;
 
     /** Tracks whether this session instance has been terminated via close(). */
     private volatile boolean isTerminated = false;
@@ -250,6 +251,18 @@ public final class CopilotSession implements AutoCloseable {
      */
     void setExecutor(Executor executor) {
         this.executor = executor;
+    }
+
+    void setGitHubTokenProviderRegistration(GitHubTokenProviderRegistry.Registration registration) {
+        this.gitHubTokenProviderRegistration = registration;
+    }
+
+    synchronized void releaseGitHubTokenProviderRegistration() {
+        GitHubTokenProviderRegistry.Registration registration = gitHubTokenProviderRegistration;
+        gitHubTokenProviderRegistration = null;
+        if (registration != null) {
+            registration.close();
+        }
     }
 
     /**
@@ -2301,6 +2314,7 @@ public final class CopilotSession implements AutoCloseable {
         }
 
         timeoutScheduler.shutdownNow();
+        releaseGitHubTokenProviderRegistration();
 
         try {
             rpc.invoke("session.destroy", Map.of("sessionId", sessionId), Void.class).get(5, TimeUnit.SECONDS);
