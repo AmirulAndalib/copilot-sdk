@@ -696,6 +696,18 @@ did not produce the multi-release output. Re-build on JDK 25+ and verify the
                 <copilot.native.classifier>win32-x64</copilot.native.classifier>
             </properties>
         </profile>
+        <profile>
+            <id>native-darwin-arm64</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <properties>
+                <copilot.native.classifier>darwin-arm64</copilot.native.classifier>
+            </properties>
+        </profile>
         <!--
             Skip the install-nodejs-cli-dependencies (npm ci) execution when
             tests are skipped via -DskipTests, so non-test builds do not
