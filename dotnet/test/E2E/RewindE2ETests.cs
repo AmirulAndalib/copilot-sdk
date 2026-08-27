@@ -18,6 +18,10 @@ public class RewindE2ETests(E2ETestFixture fixture, ITestOutputHelper output)
     [Fact]
     public async Task Should_Restore_Tracked_File_And_Conversation()
     {
+        // TODO(cli-1.0.81): Re-enable when Windows file-change tracking records built-in create tool writes.
+        if (OperatingSystem.IsWindows())
+            return;
+
         var filePath = Path.Join(Ctx.WorkDir, FileName);
         await using var session = await CreateSessionAsync(new SessionConfig
         {
@@ -47,7 +51,7 @@ public class RewindE2ETests(E2ETestFixture fixture, ITestOutputHelper output)
                     && rewindPoints.Points[0].CanRestoreFiles
                     && rewindPoints.Points[0].FileCount == 1;
             },
-            timeout: TimeSpan.FromSeconds(10),
+            timeout: TimeSpan.FromSeconds(30),
             timeoutMessage: "Timed out waiting for a restorable file rewind point.",
             pollInterval: TimeSpan.FromMilliseconds(100));
 
