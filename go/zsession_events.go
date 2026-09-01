@@ -294,6 +294,7 @@ type (
 	SessionMode                                                    = rpc.SessionMode
 	SessionModeChangedData                                         = rpc.SessionModeChangedData
 	SessionModelChangeData                                         = rpc.SessionModelChangeData
+	SessionModeNoticeDeliveredData                                 = rpc.SessionModeNoticeDeliveredData
 	SessionPermissionsChangedData                                  = rpc.SessionPermissionsChangedData
 	SessionPlanChangedData                                         = rpc.SessionPlanChangedData
 	SessionRemoteSteerableChangedData                              = rpc.SessionRemoteSteerableChangedData
@@ -551,6 +552,7 @@ const (
 	ManagedSettingsResolvedSourceDevice                                = rpc.ManagedSettingsResolvedSourceDevice
 	ManagedSettingsResolvedSourceMixed                                 = rpc.ManagedSettingsResolvedSourceMixed
 	ManagedSettingsResolvedSourceNone                                  = rpc.ManagedSettingsResolvedSourceNone
+	ManagedSettingsResolvedSourcePolicyHelper                          = rpc.ManagedSettingsResolvedSourcePolicyHelper
 	ManagedSettingsResolvedSourceServer                                = rpc.ManagedSettingsResolvedSourceServer
 	MCPHeadersRefreshCompletedOutcomeHeaders                           = rpc.MCPHeadersRefreshCompletedOutcomeHeaders
 	MCPHeadersRefreshCompletedOutcomeNone                              = rpc.MCPHeadersRefreshCompletedOutcomeNone
@@ -757,6 +759,7 @@ const (
 	SessionEventTypeSessionMCPServerStatusChanged                      = rpc.SessionEventTypeSessionMCPServerStatusChanged
 	SessionEventTypeSessionModeChanged                                 = rpc.SessionEventTypeSessionModeChanged
 	SessionEventTypeSessionModelChange                                 = rpc.SessionEventTypeSessionModelChange
+	SessionEventTypeSessionModeNoticeDelivered                         = rpc.SessionEventTypeSessionModeNoticeDelivered
 	SessionEventTypeSessionPermissionsChanged                          = rpc.SessionEventTypeSessionPermissionsChanged
 	SessionEventTypeSessionPlanChanged                                 = rpc.SessionEventTypeSessionPlanChanged
 	SessionEventTypeSessionRemoteSteerableChanged                      = rpc.SessionEventTypeSessionRemoteSteerableChanged
