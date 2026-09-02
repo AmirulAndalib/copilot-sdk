@@ -175,7 +175,16 @@ jobs:
           # whole suite normally finishes in about five.
           # The validation job performs the full analyzer-enabled SDK build.
           # Build only test-consumed frameworks here and do not repeat analyzers.
-          args=(--no-restore -v n --blame-hang --blame-hang-timeout 10m --blame-hang-dump-type none -p:RunAnalyzers=false)
+          args=(
+            --no-restore
+            -v n
+            --blame-hang
+            --blame-hang-timeout 10m
+            --blame-hang-dump-type none
+            --logger "trx;LogFilePrefix=test-results"
+            --results-directory "$GITHUB_WORKSPACE/dotnet/TestResults"
+            -p:RunAnalyzers=false
+          )
 
           filter="$DOTNET_TEST_FILTER"
           if [[ "$DOTNET_TEST_SHARD" != "full" ]]; then
@@ -217,3 +226,12 @@ jobs:
             args+=(--filter "$filter")
           fi
           dotnet test test/GitHub.Copilot.SDK.Test.csproj "${args[@]}"
+
+      - name: Upload .NET test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: dotnet-test-diagnostics-${{ matrix.os }}-${{ matrix.transport }}-${{ matrix.backend }}-${{ matrix.shard }}-${{ github.run_attempt }}
+          path: dotnet/TestResults/
+          if-no-files-found: warn
+          retention-days: 7
