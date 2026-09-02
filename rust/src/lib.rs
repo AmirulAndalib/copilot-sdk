@@ -401,6 +401,99 @@ pub struct ClientOptions {
     /// (the default) or are stripped to a minimal/safe baseline. See
     /// [`ClientMode`] for the contract and trade-offs.
     pub mode: ClientMode,
+    /// Declares the integrating host's identity, forwarded to the runtime on
+    /// the `server.connect` handshake. Declaring it lets the telemetry the
+    /// runtime emits on this connection be attributed to a consistent surface
+    /// (the host editor and its Copilot extension) instead of the runtime's own
+    /// build. All fields are optional; leave it `None` to keep the runtime's
+    /// default attribution.
+    pub client_info: Option<ClientInfo>,
+}
+
+/// Identity of the integrating host, declared on the `server.connect`
+/// handshake.
+///
+/// Declaring it lets the telemetry the runtime emits on the connection be
+/// attributed to a single, consistent surface instead of the runtime's own
+/// build. All fields are optional; an empty field is omitted from the
+/// handshake.
+///
+/// The struct is `#[non_exhaustive]`, so construct it with [`ClientInfo::new`]
+/// and the `with_*` builder methods rather than a struct literal. This lets the
+/// SDK add identity fields in future releases without a breaking change.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct ClientInfo {
+    /// Name of the host editor, e.g. `"vscode"`.
+    pub editor_name: Option<String>,
+    /// Version of the host editor, e.g. `"1.124.2"`.
+    pub editor_version: Option<String>,
+    /// Name of the Copilot extension within the host, e.g. `"copilot-chat"`.
+    pub extension_name: Option<String>,
+    /// Version of the Copilot extension within the host, e.g. `"0.54.0"`.
+    pub extension_version: Option<String>,
+}
+
+impl ClientInfo {
+    /// Create an empty `ClientInfo`. Populate fields with the `with_*` builder
+    /// methods; every field is optional.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the host editor name, e.g. `"vscode"`.
+    pub fn with_editor_name(mut self, editor_name: impl Into<String>) -> Self {
+        self.editor_name = Some(editor_name.into());
+        self
+    }
+
+    /// Set the host editor version, e.g. `"1.124.2"`.
+    pub fn with_editor_version(mut self, editor_version: impl Into<String>) -> Self {
+        self.editor_version = Some(editor_version.into());
+        self
+    }
+
+    /// Set the Copilot extension name within the host, e.g. `"copilot-chat"`.
+    pub fn with_extension_name(mut self, extension_name: impl Into<String>) -> Self {
+        self.extension_name = Some(extension_name.into());
+        self
+    }
+
+    /// Set the Copilot extension version within the host, e.g. `"0.54.0"`.
+    pub fn with_extension_version(mut self, extension_version: impl Into<String>) -> Self {
+        self.extension_version = Some(extension_version.into());
+        self
+    }
+
+    /// Returns `true` when no field carries a non-empty value, in which case the
+    /// SDK omits `clientInfo` from the handshake and the runtime keeps its
+    /// default attribution.
+    fn is_empty(&self) -> bool {
+        Self::non_empty(&self.editor_name).is_none()
+            && Self::non_empty(&self.editor_version).is_none()
+            && Self::non_empty(&self.extension_name).is_none()
+            && Self::non_empty(&self.extension_version).is_none()
+    }
+
+    /// Clone the field only when it holds a non-empty string, so empty fields are
+    /// dropped from the handshake.
+    fn non_empty(value: &Option<String>) -> Option<String> {
+        value.as_ref().filter(|s| !s.is_empty()).cloned()
+    }
+
+    /// Map onto the generated connect wire shape, dropping empty fields. Returns
+    /// `None` when no field carries a non-empty value.
+    fn to_wire(&self) -> Option<crate::generated::api_types::ConnectClientInfo> {
+        if self.is_empty() {
+            return None;
+        }
+        Some(crate::generated::api_types::ConnectClientInfo {
+            editor_name: Self::non_empty(&self.editor_name),
+            editor_version: Self::non_empty(&self.editor_version),
+            extension_name: Self::non_empty(&self.extension_name),
+            extension_version: Self::non_empty(&self.extension_version),
+        })
+    }
 }
 
 impl std::fmt::Debug for ClientOptions {
@@ -452,6 +545,7 @@ impl std::fmt::Debug for ClientOptions {
             .field("base_directory", &self.base_directory)
             .field("enable_remote_sessions", &self.enable_remote_sessions)
             .field("bundled_cli_extract_dir", &self.bundled_cli_extract_dir)
+            .field("client_info", &self.client_info)
             .finish()
     }
 }
@@ -701,6 +795,7 @@ impl Default for ClientOptions {
             enable_remote_sessions: false,
             bundled_cli_extract_dir: None,
             mode: ClientMode::default(),
+            client_info: None,
         }
     }
 }
@@ -931,6 +1026,14 @@ impl ClientOptions {
         self.mode = mode;
         self
     }
+
+    /// Declare the integrating host's identity, forwarded to the runtime on
+    /// the `server.connect` handshake so its telemetry is attributed to a
+    /// consistent surface. See [`Self::client_info`].
+    pub fn with_client_info(mut self, client_info: ClientInfo) -> Self {
+        self.client_info = Some(client_info);
+        self
+    }
 }
 
 /// Validate a [`SessionFsConfig`] before sending `sessionFs.setProvider`.
@@ -1100,6 +1203,10 @@ struct ClientInner {
     /// `None` for stdio and for external-server transport without an
     /// explicit token.
     effective_connection_token: Option<String>,
+    /// Host identity forwarded on the `connect` handshake, set from
+    /// [`ClientOptions::client_info`]. `None` keeps the runtime's default
+    /// telemetry attribution.
+    client_info: Option<ClientInfo>,
     /// SDK [`ClientMode`] captured at start time. Drives empty-mode safe
     /// defaults inside `create_session` / `resume_session`.
     pub(crate) mode: ClientMode,
@@ -1314,6 +1421,7 @@ impl Client {
                     options.on_github_telemetry,
                     effective_connection_token.clone(),
                     options.mode,
+                    options.client_info,
                 )?
             }
             Transport::Tcp {
@@ -1347,6 +1455,7 @@ impl Client {
                     options.on_github_telemetry,
                     effective_connection_token.clone(),
                     options.mode,
+                    options.client_info,
                 )?
             }
             Transport::Stdio => {
@@ -1370,6 +1479,7 @@ impl Client {
                     options.on_github_telemetry,
                     effective_connection_token.clone(),
                     options.mode,
+                    options.client_info,
                 )?
             }
             Transport::InProcess => {
@@ -1437,6 +1547,7 @@ impl Client {
                         options.on_github_telemetry,
                         effective_connection_token.clone(),
                         options.mode,
+                        options.client_info,
                     )?;
                     *client.inner.ffi_host.lock() = Some(shared);
                     client
@@ -1579,6 +1690,7 @@ impl Client {
             None,
             None,
             ClientMode::default(),
+            None,
         )
     }
 
@@ -1606,6 +1718,7 @@ impl Client {
             None,
             None,
             ClientMode::default(),
+            None,
         )
     }
 
@@ -1637,6 +1750,7 @@ impl Client {
             None,
             None,
             ClientMode::default(),
+            None,
         )
     }
 
@@ -1664,6 +1778,7 @@ impl Client {
             None,
             token,
             ClientMode::default(),
+            None,
         )
     }
 
@@ -1691,6 +1806,7 @@ impl Client {
             Some(on_github_telemetry),
             None,
             ClientMode::default(),
+            None,
         )
     }
 
@@ -1702,6 +1818,35 @@ impl Client {
     #[cfg(any(test, feature = "test-support"))]
     pub fn generate_connection_token_for_test() -> String {
         generate_connection_token()
+    }
+
+    /// Construct a [`Client`] from raw streams with a preset
+    /// [`ClientInfo`], for integration testing the `connect` handshake's
+    /// host-identity forwarding path.
+    #[doc(hidden)]
+    #[cfg(any(test, feature = "test-support"))]
+    pub fn from_streams_with_client_info(
+        reader: impl AsyncRead + Unpin + Send + 'static,
+        writer: impl AsyncWrite + Unpin + Send + 'static,
+        cwd: PathBuf,
+        client_info: Option<ClientInfo>,
+    ) -> Result<Self> {
+        Self::from_transport(
+            reader,
+            writer,
+            None,
+            None,
+            cwd,
+            None,
+            None,
+            false,
+            false,
+            None,
+            None,
+            None,
+            ClientMode::default(),
+            client_info,
+        )
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1721,6 +1866,7 @@ impl Client {
         on_github_telemetry: Option<crate::github_telemetry::GitHubTelemetryCallback>,
         effective_connection_token: Option<String>,
         mode: ClientMode,
+        client_info: Option<ClientInfo>,
     ) -> Result<Self> {
         let setup_start = Instant::now();
         let (request_tx, request_rx) = mpsc::unbounded_channel::<JsonRpcRequest>();
@@ -1766,6 +1912,7 @@ impl Client {
                 on_get_trace_context,
                 effective_connection_token,
                 mode,
+                client_info,
                 startup_timings: OnceLock::new(),
             }),
         };
@@ -2327,7 +2474,15 @@ impl Client {
                 .on_github_telemetry
                 .is_some()
                 .then_some(true),
-            ..Default::default()
+            // Declare the integrating host's identity so the runtime attributes
+            // the telemetry it emits on this connection to a consistent surface
+            // instead of its own build. `None` when the app didn't supply it, and
+            // empty fields are dropped.
+            client_info: self
+                .inner
+                .client_info
+                .as_ref()
+                .and_then(ClientInfo::to_wire),
         };
         let value = self
             .call(
@@ -3485,6 +3640,7 @@ mod tests {
             None,
             None,
             ClientMode::default(),
+            None,
         )
         .unwrap();
 
@@ -3595,6 +3751,7 @@ mod tests {
                 on_get_trace_context: None,
                 effective_connection_token: None,
                 mode: ClientMode::default(),
+                client_info: None,
                 startup_timings: OnceLock::new(),
             }),
         }
