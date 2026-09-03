@@ -36,14 +36,14 @@ Replace `${copilot.sdk.version}` with the latest release from Maven Central.
 <dependency>
     <groupId>com.github</groupId>
     <artifactId>copilot-sdk-java</artifactId>
-    <version>1.0.13-preview.4</version>
+    <version>1.0.13-preview.5</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation 'com.github:copilot-sdk-java:1.0.13-preview.4'
+implementation 'com.github:copilot-sdk-java:1.0.13-preview.5'
 ```
 
 #### Snapshot Builds
@@ -62,7 +62,7 @@ Snapshot builds of the next development version are published to Maven Central S
 <dependency>
     <groupId>com.github</groupId>
     <artifactId>copilot-sdk-java</artifactId>
-    <version>1.0.14-preview.4-SNAPSHOT</version>
+    <version>1.0.14-preview.5-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -71,7 +71,7 @@ Snapshot builds of the next development version are published to Maven Central S
 Replace `${copilot.sdk.version}` with the latest release from Maven Central.
 
 ```groovy
-implementation 'com.github:copilot-sdk-java:1.0.14-preview.4-SNAPSHOT'
+implementation 'com.github:copilot-sdk-java:1.0.14-preview.5-SNAPSHOT'
 ```
 
 ## In-process mode (experimental)
