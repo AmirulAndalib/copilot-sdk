@@ -66,7 +66,11 @@ from .canvas import (
     CanvasProviderIdentity,
     ExtensionInfo,
 )
-from .copilot_request_handler import CopilotRequestHandler, create_copilot_request_adapter
+from .copilot_request_handler import (
+    CopilotRequestHandler,
+    _CopilotRequestAdapterHandler,
+    create_copilot_request_adapter,
+)
 from .generated.rpc import (
     ClientGlobalApiHandlers,
     ClientSessionApiHandlers,
@@ -1779,6 +1783,7 @@ class CopilotClient:
             _validate_session_fs_config(options.session_fs)
         self._session_fs_config = options.session_fs
         self._request_handler = options.request_handler
+        self._llm_inference_adapter: _CopilotRequestAdapterHandler | None = None
 
     def _resolve_runtime_entrypoint(
         self,
@@ -2074,6 +2079,8 @@ class CopilotClient:
             ...         print(f"Cleanup error: {error.message}")
         """
         errors: list[StopError] = []
+        if self._llm_inference_adapter is not None:
+            self._llm_inference_adapter.cancel_pending()
 
         # Atomically take ownership of all sessions and clear the dict
         # so no other thread can access them
@@ -2208,6 +2215,9 @@ class CopilotClient:
             ... except asyncio.TimeoutError:
             ...     await client.force_stop()
         """
+        if self._llm_inference_adapter is not None:
+            self._llm_inference_adapter.cancel_pending()
+
         # Clear sessions immediately without trying to destroy them
         with self._sessions_lock:
             sessions = list(self._sessions.values())
@@ -4862,9 +4872,9 @@ class CopilotClient:
     def _register_client_global_handlers(self) -> None:
         if not self._client:
             return
-        llm_inference_adapter = None
+        self._llm_inference_adapter = None
         if self._request_handler is not None:
-            llm_inference_adapter = create_copilot_request_adapter(
+            self._llm_inference_adapter = create_copilot_request_adapter(
                 self._request_handler,
                 lambda: self._rpc.llm_inference if self._rpc is not None else None,
             )
@@ -4876,7 +4886,7 @@ class CopilotClient:
             ClientGlobalApiHandlers(
                 hooks=_HooksAdapter(self._get_session),
                 extension_launch_provider=self._options.extension_launch_provider,
-                llm_inference=llm_inference_adapter,
+                llm_inference=self._llm_inference_adapter,
                 git_hub_telemetry=github_telemetry_adapter,
                 git_hub_token=self._github_token_provider_adapter,
             ),
@@ -4901,10 +4911,13 @@ class CopilotClient:
         with self._github_token_providers_lock:
             self._github_token_providers.clear()
         client = self._client
+        llm_inference_adapter = self._llm_inference_adapter
         loop = client._loop if client is not None else None
         if loop is not None and not loop.is_closed():
 
             def cancel_pending_external_tools() -> None:
+                if llm_inference_adapter is not None:
+                    llm_inference_adapter.cancel_pending()
                 for session in sessions:
                     session._cancel_pending_external_tools()
 
