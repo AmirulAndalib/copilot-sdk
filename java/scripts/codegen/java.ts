@@ -8,6 +8,7 @@
  */
 
 import fs from "fs/promises";
+import { realpathSync } from "fs";
 import type { JSONSchema7 } from "json-schema";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -18,6 +19,7 @@ const __dirname = path.dirname(__filename);
 
 /** Root of the copilot-sdk-java repo */
 const REPO_ROOT = path.resolve(__dirname, "../..");
+const OUTPUT_ROOT = process.env.COPILOT_CODEGEN_OUTPUT_ROOT ?? REPO_ROOT;
 
 /** Event types to exclude from generation (internal/legacy types) */
 const EXCLUDED_EVENT_TYPES = new Set(["session.import_legacy"]);
@@ -177,7 +179,10 @@ function toEnumConstant(value: string): string {
 
 /** Resolve a JSON schema staged from the pinned GitHub Release artifact. */
 async function resolveCopilotSchemaPath(fileName: string): Promise<string> {
-    const schemaPath = path.join(REPO_ROOT, "scripts/codegen/target/schemas", fileName);
+    const schemaPath = path.join(
+        process.env.COPILOT_CLI_SCHEMA_OUTPUT ?? path.join(REPO_ROOT, "scripts/codegen/target/schemas"),
+        fileName,
+    );
     try {
         await fs.access(schemaPath);
         return schemaPath;
@@ -199,7 +204,7 @@ async function getApiSchemaPath(): Promise<string> {
 let pendingOutput: Map<string, string> | undefined;
 
 async function writeGeneratedFile(relativePath: string, content: string): Promise<string> {
-    const fullPath = path.join(REPO_ROOT, relativePath);
+    const fullPath = path.join(OUTPUT_ROOT, relativePath);
     const files = rpcGeneration?.files ?? pendingOutput;
     if (files) {
         const previous = files.get(relativePath);
@@ -986,9 +991,17 @@ async function generateSessionEvents(schemaPath: string): Promise<void> {
     await generatePendingStandaloneTypes(packageName, packageDir, GENERATED_FROM_SESSION_EVENTS);
 
     generatedSessionEventTypeNames.clear();
-    for (const entry of await fs.readdir(path.join(REPO_ROOT, packageDir), { withFileTypes: true })) {
-        if (entry.isFile() && entry.name.endsWith(".java")) {
-            generatedSessionEventTypeNames.add(path.basename(entry.name, ".java"));
+    if (pendingOutput) {
+        for (const file of pendingOutput.keys()) {
+            if (path.dirname(file) === packageDir && file.endsWith(".java")) {
+                generatedSessionEventTypeNames.add(path.basename(file, ".java"));
+            }
+        }
+    } else {
+        for (const entry of await fs.readdir(path.join(OUTPUT_ROOT, packageDir), { withFileTypes: true })) {
+            if (entry.isFile() && entry.name.endsWith(".java")) {
+                generatedSessionEventTypeNames.add(path.basename(entry.name, ".java"));
+            }
         }
     }
 
@@ -2659,7 +2672,7 @@ async function main(): Promise<void> {
         pendingOutput = undefined;
     }
 
-    const generatedOutputDir = path.join(REPO_ROOT, "sdk/src/generated/java/com/github/copilot/generated");
+    const generatedOutputDir = path.join(OUTPUT_ROOT, "sdk/src/generated/java/com/github/copilot/generated");
     console.log(`🧹 Cleaning output directory: ${generatedOutputDir}`);
     await fs.rm(generatedOutputDir, { recursive: true, force: true });
     await fs.mkdir(generatedOutputDir, { recursive: true });
@@ -2668,7 +2681,12 @@ async function main(): Promise<void> {
     console.log("\n✅ Java code generation complete!");
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+export function isMainModule(entrypoint: string | undefined, modulePath: string): boolean {
+    return !!entrypoint &&
+        realpathSync(path.resolve(entrypoint)) === realpathSync(modulePath);
+}
+
+if (isMainModule(process.argv[1], __filename)) {
     main().catch((err) => {
         console.error("❌ Code generation failed:", err);
         process.exit(1);

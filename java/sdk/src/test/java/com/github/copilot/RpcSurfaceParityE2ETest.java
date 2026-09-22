@@ -41,8 +41,8 @@ class RpcSurfaceParityE2ETest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final long TIMEOUT_SECONDS = 30;
-    private static final int EXPECTED_RPC_METHOD_COUNT = 403;
-    private static final String EXPECTED_RPC_SIGNATURE_SHA256 = "24f93e3b9142caf0641a506217ef53727ab87f518ddbacb41852d913d7ad5988";
+    private static final int EXPECTED_RPC_METHOD_COUNT = 415;
+    private static final String EXPECTED_RPC_SIGNATURE_SHA256 = "0f923cec163411c42e63405870b8bdc489e1f9d2f6c4dbb69a5cea7dbd99e597";
     private static final Map<String, Integer> EXPECTED_METHODS_BY_DECLARING_TYPE = Map.ofEntries(
             Map.entry("RpcCaller", 2), Map.entry("ServerAccountApi", 6), Map.entry("ServerAgentRegistryApi", 1),
             Map.entry("ServerAgentsApi", 2), Map.entry("ServerCatalogApi", 2), Map.entry("ServerCommandsApi", 1),
@@ -57,8 +57,8 @@ class RpcSurfaceParityE2ETest {
             Map.entry("SessionAutopilotObjectiveApi", 1), Map.entry("SessionCanvasActionApi", 1),
             Map.entry("SessionCanvasApi", 4), Map.entry("SessionCanvasProviderApi", 2),
             Map.entry("SessionCommandsApi", 8), Map.entry("SessionCompletionsApi", 2),
-            Map.entry("SessionContentExclusionApi", 1), Map.entry("SessionDebugApi", 1),
-            Map.entry("SessionEventLogApi", 4), Map.entry("SessionExtensionsApi", 5),
+            Map.entry("SessionConnectorsApi", 11), Map.entry("SessionContentExclusionApi", 1),
+            Map.entry("SessionDebugApi", 1), Map.entry("SessionEventLogApi", 4), Map.entry("SessionExtensionsApi", 5),
             Map.entry("SessionFactoryApi", 13), Map.entry("SessionFactoryJournalApi", 2),
             Map.entry("SessionFleetApi", 1), Map.entry("SessionGitHubAuthApi", 10), Map.entry("SessionHistoryApi", 10),
             Map.entry("SessionInstructionsApi", 1), Map.entry("SessionLimitPredictionApi", 2),
@@ -70,7 +70,7 @@ class RpcSurfaceParityE2ETest {
             Map.entry("SessionPermissionsLocationsApi", 3), Map.entry("SessionPermissionsPathsApi", 5),
             Map.entry("SessionPermissionsUrlsApi", 1), Map.entry("SessionPlanApi", 5),
             Map.entry("SessionPluginsApi", 8), Map.entry("SessionPluginsMarketplacesApi", 6),
-            Map.entry("SessionProviderApi", 3), Map.entry("SessionQueueApi", 20), Map.entry("SessionRemoteApi", 3),
+            Map.entry("SessionProviderApi", 4), Map.entry("SessionQueueApi", 20), Map.entry("SessionRemoteApi", 3),
             Map.entry("SessionRpc", 9), Map.entry("SessionSandboxApi", 2), Map.entry("SessionScheduleApi", 9),
             Map.entry("SessionSettingsApi", 2), Map.entry("SessionShellApi", 4), Map.entry("SessionSkillsApi", 6),
             Map.entry("SessionTasksApi", 13), Map.entry("SessionTelemetryApi", 2), Map.entry("SessionToolsApi", 8),

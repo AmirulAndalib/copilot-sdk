@@ -1783,6 +1783,86 @@ func (r *CommandsRespondToQueuedCommandRequest) UnmarshalJSON(data []byte) error
 	return nil
 }
 
+func unmarshalConnectorConnectResult(data []byte) (ConnectorConnectResult, error) {
+	if string(data) == "null" {
+		return nil, nil
+	}
+	type rawUnion struct {
+		Kind ConnectorConnectResultKind `json:"kind"`
+	}
+	var raw rawUnion
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return nil, err
+	}
+
+	switch raw.Kind {
+	case ConnectorConnectResultKindConnected:
+		var d ConnectorConnectResultConnected
+		if err := json.Unmarshal(data, &d); err != nil {
+			return nil, err
+		}
+		return &d, nil
+	case ConnectorConnectResultKindConsentRequired:
+		var d ConnectorConnectResultConsentRequired
+		if err := json.Unmarshal(data, &d); err != nil {
+			return nil, err
+		}
+		return &d, nil
+	case ConnectorConnectResultKindPending:
+		var d ConnectorConnectResultPending
+		if err := json.Unmarshal(data, &d); err != nil {
+			return nil, err
+		}
+		return &d, nil
+	default:
+		return &RawConnectorConnectResultData{Discriminator: raw.Kind, Raw: data}, nil
+	}
+}
+
+func (r RawConnectorConnectResultData) MarshalJSON() ([]byte, error) {
+	if r.Raw != nil {
+		return r.Raw, nil
+	}
+	return json.Marshal(struct {
+		Kind ConnectorConnectResultKind `json:"kind"`
+	}{
+		Kind: r.Discriminator,
+	})
+}
+
+func (r ConnectorConnectResultConnected) MarshalJSON() ([]byte, error) {
+	type alias ConnectorConnectResultConnected
+	return json.Marshal(struct {
+		Kind ConnectorConnectResultKind `json:"kind"`
+		alias
+	}{
+		Kind:  r.Kind(),
+		alias: alias(r),
+	})
+}
+
+func (r ConnectorConnectResultConsentRequired) MarshalJSON() ([]byte, error) {
+	type alias ConnectorConnectResultConsentRequired
+	return json.Marshal(struct {
+		Kind ConnectorConnectResultKind `json:"kind"`
+		alias
+	}{
+		Kind:  r.Kind(),
+		alias: alias(r),
+	})
+}
+
+func (r ConnectorConnectResultPending) MarshalJSON() ([]byte, error) {
+	type alias ConnectorConnectResultPending
+	return json.Marshal(struct {
+		Kind ConnectorConnectResultKind `json:"kind"`
+		alias
+	}{
+		Kind:  r.Kind(),
+		alias: alias(r),
+	})
+}
+
 func unmarshalDebugCollectLogsDestination(data []byte) (DebugCollectLogsDestination, error) {
 	if string(data) == "null" {
 		return nil, nil
@@ -1866,6 +1946,60 @@ func (r *DebugCollectLogsRequest) UnmarshalJSON(data []byte) error {
 	}
 	r.Include = raw.Include
 	return nil
+}
+
+func unmarshalEnqueueCommandResult(data []byte) (EnqueueCommandResult, error) {
+	if string(data) == "null" {
+		return nil, nil
+	}
+	type rawUnion struct {
+		Queued *bool `json:"queued"`
+	}
+	var raw rawUnion
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return nil, err
+	}
+	if raw.Queued == nil {
+		return nil, errors.New("data did not match any union variant for EnqueueCommandResult")
+	}
+
+	switch *raw.Queued {
+	case false:
+		var d UnsupportedEnqueueCommandResult
+		if err := json.Unmarshal(data, &d); err != nil {
+			return nil, err
+		}
+		return &d, nil
+	case true:
+		var d AcceptedEnqueueCommandResult
+		if err := json.Unmarshal(data, &d); err != nil {
+			return nil, err
+		}
+		return &d, nil
+	}
+	return nil, errors.New("data did not match any union variant for EnqueueCommandResult")
+}
+
+func (r AcceptedEnqueueCommandResult) MarshalJSON() ([]byte, error) {
+	type alias AcceptedEnqueueCommandResult
+	return json.Marshal(struct {
+		Queued bool `json:"queued"`
+		alias
+	}{
+		Queued: r.Queued(),
+		alias:  alias(r),
+	})
+}
+
+func (r UnsupportedEnqueueCommandResult) MarshalJSON() ([]byte, error) {
+	type alias UnsupportedEnqueueCommandResult
+	return json.Marshal(struct {
+		Queued bool `json:"queued"`
+		alias
+	}{
+		Queued: r.Queued(),
+		alias:  alias(r),
+	})
 }
 
 func (r EventLogTypes) MarshalJSON() ([]byte, error) {
@@ -6270,6 +6404,7 @@ func (r *SessionOpenOptions) UnmarshalJSON(data []byte) error {
 		ExpAssignments                         any                                                  `json:"expAssignments,omitempty"`
 		FeatureFlags                           map[string]bool                                      `json:"featureFlags,omitzero"`
 		HasSkillProvider                       *bool                                                `json:"hasSkillProvider,omitempty"`
+		IgnoredSkillsLocations                 []string                                             `json:"ignoredSkillsLocations,omitzero"`
 		IncludedBuiltinAgents                  []string                                             `json:"includedBuiltinAgents,omitzero"`
 		IncludedBuiltinSkills                  []string                                             `json:"includedBuiltinSkills,omitzero"`
 		InstalledPlugins                       []InstalledPlugin                                    `json:"installedPlugins,omitzero"`
@@ -6355,6 +6490,7 @@ func (r *SessionOpenOptions) UnmarshalJSON(data []byte) error {
 	r.ExpAssignments = raw.ExpAssignments
 	r.FeatureFlags = raw.FeatureFlags
 	r.HasSkillProvider = raw.HasSkillProvider
+	r.IgnoredSkillsLocations = raw.IgnoredSkillsLocations
 	r.IncludedBuiltinAgents = raw.IncludedBuiltinAgents
 	r.IncludedBuiltinSkills = raw.IncludedBuiltinSkills
 	r.InstalledPlugins = raw.InstalledPlugins
@@ -7273,6 +7409,34 @@ func (r *TasksUpdateRequest) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		r.Update = value
+	}
+	return nil
+}
+
+func (r *Tool) UnmarshalJSON(data []byte) error {
+	type rawTool struct {
+		Description      string          `json:"description"`
+		Instructions     *string         `json:"instructions,omitempty"`
+		Name             string          `json:"name"`
+		NamespacedName   *string         `json:"namespacedName,omitempty"`
+		Parameters       map[string]any  `json:"parameters,omitzero"`
+		SafeForTelemetry json.RawMessage `json:"safeForTelemetry,omitempty"`
+	}
+	var raw rawTool
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	r.Description = raw.Description
+	r.Instructions = raw.Instructions
+	r.Name = raw.Name
+	r.NamespacedName = raw.NamespacedName
+	r.Parameters = raw.Parameters
+	if raw.SafeForTelemetry != nil {
+		value, err := unmarshalBuiltinToolSafeForTelemetry(raw.SafeForTelemetry)
+		if err != nil {
+			return err
+		}
+		r.SafeForTelemetry = value
 	}
 	return nil
 }
