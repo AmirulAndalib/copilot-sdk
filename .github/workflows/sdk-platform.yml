@@ -8,9 +8,6 @@ on:
       platform:
         required: true
         type: string
-      runtime-source:
-        required: true
-        type: string
       sdk-home:
         required: true
         type: string
@@ -58,6 +55,5 @@ jobs:
     uses: ./.github/workflows/sdk-java.yml
     with:
       platform: ${{ inputs.platform }}
-      runtime-source: ${{ inputs.runtime-source }}
       sdk-home: ${{ inputs.sdk-home }}
     secrets: inherit

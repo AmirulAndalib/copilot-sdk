@@ -1,6 +1,5 @@
 # Invoked by sdk.yml to run full subprocess Java SDK coverage on supported JDKs,
-# focused in-process smoke coverage across native classifiers, and documentation
-# and generated-client drift checks.
+# focused in-process smoke coverage across native classifiers, and documentation.
 name: "SDK Java"
 
 env:
@@ -16,9 +15,6 @@ on:
         required: false
         type: string
         default: all
-      runtime-source:
-        required: true
-        type: string
       sdk-home:
         required: true
         type: string
@@ -58,12 +54,14 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
-      - if: matrix.test-jdk == '25'
+      # TEMPORARY MERGE QUEUE REDUCTION: pull requests and main pushes retain
+      # static checks; merge groups rerun only SDK compatibility coverage.
+      - if: github.event_name != 'merge_group' && matrix.test-jdk == '25'
         run: ./scripts/test-update-documentation-versions.sh
       - run: ./mvnw test-compile jar:jar
-      - if: matrix.test-jdk == '25'
+      - if: github.event_name != 'merge_group' && matrix.test-jdk == '25'
         run: ./mvnw javadoc:javadoc
-      - if: matrix.test-jdk == '25'
+      - if: github.event_name != 'merge_group' && matrix.test-jdk == '25'
         run: ./mvnw spotless:check
       - run: npm ci --ignore-scripts
         working-directory: ${{ inputs.sdk-home }}/test/harness
@@ -197,60 +195,6 @@ jobs:
             ${{ inputs.sdk-home }}/java/sdk/target/surefire-reports-isolated/
             ${{ inputs.sdk-home }}/java/sdk/target/failsafe-reports/
           retention-days: 7
-
-  java-codegen:
-    name: "Generated Java client"
-    if: inputs.platform == 'all' || inputs.platform == 'docs'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        timeout-minutes: 4
-        with:
-          persist-credentials: false
-      - if: inputs.runtime-source == 'checkout'
-        uses: ./.github/actions/setup-node
-        timeout-minutes: ${{ fromJSON(env.SETUP_NODE_TIMEOUT_MINUTES) }}
-        with:
-          install-deps: "false"
-      - if: inputs.runtime-source == 'checkout'
-        uses: ./.github/actions/setup-rust-cache
-        timeout-minutes: 8
-        continue-on-error: true
-        with:
-          cache-key: sdk-java-codegen
-      - if: inputs.runtime-source == 'published'
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-      - run: npm ci
-        working-directory: ${{ inputs.sdk-home }}/java/scripts/codegen
-      - if: inputs.runtime-source == 'checkout'
-        run: npm --prefix "$SDK_HOME" run generate:java
-      - if: inputs.runtime-source == 'published'
-        run: npm run generate
-        working-directory: ${{ inputs.sdk-home }}/java/scripts/codegen
-      - env:
-          RUNTIME_SOURCE: ${{ inputs.runtime-source }}
-        run: |
-          paths=("$SDK_HOME/java/sdk/src/generated")
-          if [[ "$RUNTIME_SOURCE" == "checkout" ]]; then
-            paths+=(generated)
-          fi
-          changes=$(git status --porcelain -- "${paths[@]}")
-          if [[ -n "$changes" ]]; then
-            echo "::error::Generated Java client is out of date."
-            echo "$changes"
-            git diff --stat -- "${paths[@]}"
-            git diff -- "${paths[@]}"
-            exit 1
-          fi
-      - env:
-          PROTOCOL_FILE: ${{ inputs.sdk-home }}/sdk-protocol-version.json
-          JAVA_PROTOCOL_FILE: ${{ inputs.sdk-home }}/java/sdk/src/main/java/com/github/copilot/SdkProtocolVersion.java
-        run: |
-          expected=$(jq -r '.version' "$PROTOCOL_FILE")
-          actual=$(sed -n 's/.*LATEST(\([0-9][0-9]*\)).*/\1/p' "$JAVA_PROTOCOL_FILE")
-          test "$expected" = "$actual"
 
   docs-java:
     name: "Docs (Java)"

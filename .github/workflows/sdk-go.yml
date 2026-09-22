@@ -54,11 +54,13 @@ jobs:
           cache-dependency-path: |
             ${{ inputs.sdk-home }}/go/go.sum
             ${{ inputs.sdk-home }}/go/samples/go.sum
-      - if: runner.os == 'Linux' && matrix.transport == 'default'
+      # TEMPORARY MERGE QUEUE REDUCTION: pull requests and main pushes retain
+      # static checks; merge groups rerun only SDK compatibility coverage.
+      - if: github.event_name != 'merge_group' && runner.os == 'Linux' && matrix.transport == 'default'
         run: |
           go fmt ./...
           git diff --exit-code
-      - if: runner.os == 'Linux' && matrix.transport == 'default'
+      - if: github.event_name != 'merge_group' && runner.os == 'Linux' && matrix.transport == 'default'
         uses: golangci/golangci-lint-action@v9
         with:
           working-directory: ${{ inputs.sdk-home }}/go

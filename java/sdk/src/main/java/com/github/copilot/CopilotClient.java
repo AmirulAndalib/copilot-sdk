@@ -621,8 +621,10 @@ public final class CopilotClient implements AutoCloseable {
                         startNanos);
             }
             // Clean up the spawned process if connection setup failed
-            if (process != null) {
-                cleanupCliProcess(process, true);
+            if (process != null && cleanupCliProcess(process, true)) {
+                // Cleanup observed an exited child and left its streams open.
+                // Drain stderr before rpc.close() destroys those streams.
+                serverManager.awaitStderrReader();
             }
             if (rpc != null) {
                 try {
@@ -830,7 +832,11 @@ public final class CopilotClient implements AutoCloseable {
         }).thenCompose(result -> result);
     }
 
-    private static void cleanupCliProcess(Process process, boolean forceImmediately) {
+    /**
+     * Returns true only when the child had already exited and no streams were
+     * destroyed.
+     */
+    private static boolean cleanupCliProcess(Process process, boolean forceImmediately) {
         try {
             if (process.isAlive()) {
                 // The runtime completes all cleanup before responding to
@@ -844,25 +850,28 @@ public final class CopilotClient implements AutoCloseable {
                     if (!process.waitFor(FORCE_KILL_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                         LOG.fine("Process did not terminate within force kill timeout");
                     }
-                    return;
+                    return false;
                 }
 
                 process.destroy();
                 if (process.waitFor(FORCE_KILL_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-                    return;
+                    return false;
                 }
 
                 process.destroyForcibly();
                 if (!process.waitFor(FORCE_KILL_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                     LOG.fine("Process did not terminate within force kill timeout");
                 }
+                return false;
             }
+            return true;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             LOG.log(Level.FINE, "Interrupted while killing process", e);
         } catch (Exception e) {
             LOG.log(Level.FINE, "Error killing process", e);
         }
+        return false;
     }
 
     /**

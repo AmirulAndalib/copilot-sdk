@@ -1,8 +1,8 @@
 import type { JSONSchema7 } from "json-schema";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, onTestFinished } from "vitest";
 
 import {
     collectDefinitionCollections,
@@ -18,19 +18,35 @@ import {
 
 describe("shared schema definition codegen utilities", () => {
     it("selects checked-out schemas for normal nested generation with a clean environment", async () => {
+        const root = await mkdtemp(join(tmpdir(), "copilot-nested-codegen-"));
+        onTestFinished(() => rm(root, { recursive: true, force: true }));
+        const sdkRoot = join(root, "src/sdk");
+        const schemaRoot = join(root, "generated");
+        await Promise.all([
+            mkdir(sdkRoot, { recursive: true }),
+            mkdir(join(root, "script")),
+            mkdir(schemaRoot),
+        ]);
+        await Promise.all([
+            writeFile(join(root, "script/sea-build.ts"), ""),
+            writeFile(join(schemaRoot, "api.schema.json"), '{"title":"Runtime API"}\n'),
+            writeFile(
+                join(schemaRoot, "session-events.schema.json"),
+                '{"title":"Runtime Events"}\n'
+            ),
+        ]);
+
         const paths = await resolveCopilotSchemaPaths({
             acquirePackage: async () => {
                 throw new Error("published acquisition must not run");
             },
             environment: {},
+            sdkRoot,
         });
 
         expect(paths).toEqual({
-            apiSchemaPath: join(process.cwd(), "../../../generated/api.schema.json"),
-            sessionEventsSchemaPath: join(
-                process.cwd(),
-                "../../../generated/session-events.schema.json"
-            ),
+            apiSchemaPath: join(schemaRoot, "api.schema.json"),
+            sessionEventsSchemaPath: join(schemaRoot, "session-events.schema.json"),
         });
     });
 

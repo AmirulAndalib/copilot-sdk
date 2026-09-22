@@ -64,11 +64,16 @@ not download a second runtime artifact.
 
 ## Run the Sample
 
-Try the interactive chat sample (from the repo root):
+Try the interactive chat sample from the SDK root (`src/sdk` when nested).
+In the runtime repository, first run `pnpm run build:cli` from the runtime root,
+then return to `src/sdk`. A Python source install does not pin a downloadable
+runtime, so select the prepared executable explicitly. Run the sample in the
+project's uv environment; see [development setup](#development) for prerequisites.
 
 ```bash
-cd python/samples
-python chat.py
+npm --prefix nodejs ci --ignore-scripts
+export COPILOT_CLI_PATH="$(npm --prefix nodejs run --silent prepare:runtime -- --print-path)"
+uv run --project python python python/samples/chat.py
 ```
 
 ## Quick Start
@@ -1261,22 +1266,22 @@ When `on_elicitation_request` is provided, the SDK automatically:
 
 ## Development
 
-Install [uv](https://docs.astral.sh/uv/) and a supported [Node.js version](../nodejs/README.md#prerequisites), then from the repository root:
+Follow [SDK development setup](../CONTRIBUTING.md#developing-an-sdk) for Python,
+uv, and the Node/replay-harness dependencies. From the SDK root (`src/sdk` in
+the runtime repository, or the standalone repository root):
 
 ```bash
-cd nodejs
-npm ci
+npm run build:python
+npm run test:python
+npm run check:python
 ```
 
-```bash
-cd test/harness
-npm ci
-```
+The build task runs `uv sync --all-extras --dev`. For focused tests after
+[preparing the runtime](../CONTRIBUTING.md#testing-an-unreleased-runtime-api),
+run the native runner from `python/`:
 
 ```bash
-cd python
-uv sync
-uv run pytest
+uv run pytest "<test-file>"
 ```
 
 Signal-based E2E failures from `pytest-timeout` include an **Async timeout diagnostics** report

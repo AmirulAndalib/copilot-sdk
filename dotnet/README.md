@@ -23,7 +23,8 @@ Set `CopilotCliBinaryPath` to copy a preinstalled binary instead, or set
 
 ## Run the Samples
 
-Try the interactive chat sample (from the repo root):
+Try the interactive chat sample from the SDK root (`src/sdk` when nested).
+For checkout builds, first follow [development setup](#development):
 
 ```bash
 dotnet run --file dotnet/samples/Chat.cs
@@ -1250,21 +1251,26 @@ catch (Exception ex)
 
 ## Development
 
-Development requires [.NET SDK 10+](https://dotnet.microsoft.com/download) and a supported [Node.js version](../nodejs/README.md#prerequisites). From the repository root:
+Follow [SDK development setup](../CONTRIBUTING.md#developing-an-sdk) for the
+.NET SDK selected by `global.json`, the **.NET 8 test runtime**, and Node/harness
+dependencies. SDK 10 alone does not install the runtime for `net8.0` tests;
+Windows additionally runs `net472` tests.
+
+From the SDK root (`src/sdk` in the runtime repository, or the standalone
+repository root):
 
 ```bash
-cd nodejs
-npm ci
+npm run build:dotnet
+npm run test:dotnet
+npm run check:dotnet
 ```
 
-```bash
-cd test/harness
-npm ci
-```
+For a focused native test, first
+[prepare the runtime](../CONTRIBUTING.md#testing-an-unreleased-runtime-api),
+then run from `dotnet/` so `global.json` applies:
 
 ```bash
-cd dotnet
-dotnet test
+dotnet test test/GitHub.Copilot.SDK.Test.csproj --filter "FullyQualifiedName~<test-name>"
 ```
 
 ## License

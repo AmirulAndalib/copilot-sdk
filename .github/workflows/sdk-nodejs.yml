@@ -54,11 +54,13 @@ jobs:
           cache: npm
           cache-dependency-path: ${{ inputs.sdk-home }}/nodejs/package-lock.json
       - run: npm ci --ignore-scripts
-      - if: runner.os == 'Linux' && matrix.transport == 'default'
+      # TEMPORARY MERGE QUEUE REDUCTION: pull requests and main pushes retain
+      # static checks; merge groups rerun only SDK compatibility coverage.
+      - if: github.event_name != 'merge_group' && runner.os == 'Linux' && matrix.transport == 'default'
         run: npm run format:check
-      - if: runner.os == 'Linux' && matrix.transport == 'default'
+      - if: github.event_name != 'merge_group' && runner.os == 'Linux' && matrix.transport == 'default'
         run: npm run lint
-      - if: runner.os == 'Linux' && matrix.transport == 'default'
+      - if: github.event_name != 'merge_group' && runner.os == 'Linux' && matrix.transport == 'default'
         run: npm run typecheck
       - run: npm run build
       - if: runner.os == 'Linux' && matrix.transport == 'default'

@@ -60,7 +60,9 @@ jobs:
         with:
           node-version: 22
       - run: dotnet restore -p:CopilotCliBinaryPath="$COPILOT_RUNTIME_BINARY_PATH" -p:CopilotSkipCliDownload=true
-      - if: matrix.transport == 'default'
+      # TEMPORARY MERGE QUEUE REDUCTION: pull requests and main pushes retain
+      # static checks; merge groups rerun only SDK compatibility coverage.
+      - if: github.event_name != 'merge_group' && matrix.transport == 'default'
         run: dotnet format --verify-no-changes --no-restore
       - run: dotnet build --no-restore -p:CopilotCliBinaryPath="$COPILOT_RUNTIME_BINARY_PATH" -p:CopilotSkipCliDownload=true
       - name: Test structured output with reflection enabled

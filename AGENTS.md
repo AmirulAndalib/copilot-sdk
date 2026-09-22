@@ -22,22 +22,29 @@
 
 ## Developer workflows (commands you’ll use often) ▶️
 
+- Start with [SDK development setup](CONTRIBUTING.md#developing-an-sdk) for
+  layout-specific prerequisites and dependency preparation; select only the
+  languages needed.
 - Monorepo helpers: use the portable package scripts from `<SDK_ROOT>`:
     - Build all six SDKs: `npm --prefix <SDK_ROOT> run build`
     - Format all: `npm --prefix <SDK_ROOT> run format` | Lint all: `npm --prefix <SDK_ROOT> run lint` | Test all: `npm --prefix <SDK_ROOT> run test`
     - Run one language with a verb-first script such as `npm --prefix <SDK_ROOT> run build:python` or `npm --prefix <SDK_ROOT> run check:rust`.
     - In the canonical runtime-repository layout, build and test commands automatically refresh runtime schemas and the selected language projections; tests also request a fresh same-checkout CLI build, with unchanged Bazel actions remaining cached. Cross-target CI jobs use their native test commands with explicitly staged artifacts instead of this local facade. Standalone SDK commands retain pinned published-artifact behavior.
+    - See [task scopes](CONTRIBUTING.md#build-test-and-check) for default-test
+      feature coverage and check side effects. Use the contributor guide's
+      [focused-test setup](CONTRIBUTING.md#testing-an-unreleased-runtime-api)
+      before invoking native runners.
 - Per-language:
     - For normal runtime-repository testing, prefer `npm --prefix <SDK_ROOT> run test:<language>` so schemas, generated clients, and the host CLI are current. Direct language-native commands below bypass those prerequisites; use them for focused tests after preparing the checkout, or in the standalone SDK repository.
     - Node: `cd <SDK_ROOT>/nodejs && npm ci` → `npm test` (Vitest)
-    - Python: `cd <SDK_ROOT>/python && uv pip install -e . --group dev` → `uv run pytest` (E2E tests use the test harness)
+    - Python: `cd <SDK_ROOT>/python && uv sync --locked --all-extras --dev` → `uv run pytest` (E2E tests use the test harness)
     - Go: `cd <SDK_ROOT>/go && go test ./...`
     - .NET: `cd <SDK_ROOT>/dotnet && dotnet test test/GitHub.Copilot.SDK.Test.csproj`
     - **.NET testing note:** Never add `InternalsVisibleTo` to any project file when writing tests. Tests must only access public APIs.
-    - Java: `cd <SDK_ROOT>/java && mvn clean verify` (full build + tests), `mvn -pl sdk spotless:apply` (format code)
-    - Java single test: `cd <SDK_ROOT>/java && mvn test -Dtest=CopilotClientTest` | single method: `mvn test -Dtest=ToolsTest#testToolInvocation`
-    - Java formatting and Javadoc checks: `mvn -pl sdk spotless:check checkstyle:check` | Build without tests: `mvn clean package -DskipTests`
-    - **Java testing note:** Always use `mvn verify` without `-q` and without piping through `grep`. Never add `InternalsVisibleTo` equivalent — tests must only access public APIs.
+    - Java: `cd <SDK_ROOT>/java && ./mvnw clean verify` (full build + tests), `./mvnw -pl sdk spotless:apply` (format code). Use `.\mvnw.cmd` on Windows.
+    - Java single unit test: `./mvnw -pl sdk test -Dtest=CopilotClientTest`; for integration tests use `./mvnw -pl sdk verify -Dit.test="<TestClass>#<testMethod>" -Dcopilot.cli.path="$COPILOT_CLI_PATH"`, substituting your test's class/method after preparing the runtime.
+    - Java formatting and Javadoc checks: `./mvnw -pl sdk spotless:check checkstyle:check` | Build without tests: `./mvnw clean package -DskipTests`
+    - **Java testing note:** Use `verify` for integration tests, without `-q` or piping through `grep`. Never add `InternalsVisibleTo` equivalent — tests must only access public APIs.
 - Use configured LSPs for supported operations like finding references instead of pattern matching, renaming symbols, etc.
 
 ## Testing & E2E tips ⚙️
@@ -62,8 +69,13 @@
 ## Integration & environment notes ⚠️
 
 - The SDK requires a Copilot CLI installation or an external server reachable via the `CLI URL option (language-specific casing)` (Node: `cliUrl`, Go: `CLIUrl`, .NET: `CliUrl`, Python: `cli_url`, Java: `cliUrl`) or `COPILOT_CLI_PATH`.
-- Some scripts (typegen, formatting) call external tools: `gofmt`, `dotnet format`, `tsx` (available via npm), `quicktype`/`quicktype-core` (used by the Node typegen script), and `prettier` (provided as an npm devDependency). Toolchains must be installed by CI or the developer environment. SDK builds restore native project dependencies automatically; the aggregate build explicitly prepares Node.js and Python dependencies.
-- Current development and CI toolchains are Node.js 22, Python 3.11+, Go 1.24, .NET SDK 10, Rust 1.94, JDK 25, and Maven 3.9+. Java artifacts target JDK 17 consumers, and Java E2E tests also require Node.js for the replay proxy. Check each language manifest for its supported consumer versions.
+- Generators and checks use language formatting tools in addition to npm
+  dependencies. Use the [prerequisite table](CONTRIBUTING.md#choose-your-toolchains)
+  and its linked manifests instead of assuming consumer minimum versions are
+  sufficient. Nested runtime builds require the parent's Node/pnpm versions.
+- Build tools and test runtimes differ: .NET SDK 10 does not supply the .NET 8
+  test runtime, Java builds require JDK 25 while compatibility tests also use
+  JDK 17, and Rust SDK checks use their own pinned stable and nightly toolchains.
 - Java build prerequisites, supported runtime versions, formatting, and Javadoc checks are documented in `<SDK_ROOT>/java/AGENTS.md`.
 
 ## Where to add new code or tests 🧭
@@ -72,9 +84,37 @@
 - Unit tests: `<SDK_ROOT>/nodejs/test`, `<SDK_ROOT>/python/*`, `<SDK_ROOT>/go/*`, `<SDK_ROOT>/dotnet/test`, `<SDK_ROOT>/rust/tests`, `<SDK_ROOT>/java/sdk/src/test/java`
 - E2E tests: `*/e2e/` folders that use the shared replay proxy and `<SDK_ROOT>/test/snapshots/`, `<SDK_ROOT>/java/sdk/src/test/java/**/e2e/`
 - Generated types: in the runtime repository, run `npm --prefix <SDK_ROOT> run generate` or `generate:<language>` to derive committed schemas and clients from runtime HEAD. In the standalone SDK repository, the same commands use the pinned Copilot CLI release schemas. Update the pin only when intentionally advancing standalone generation inputs.
+- For schema-only generation, conditional freshness checks, and protocol
+  generation, follow the contributor guide's
+  [revision-specific workflow](CONTRIBUTING.md#testing-an-unreleased-runtime-api).
+  Verify command availability in the runtime root manifest first; do not import
+  another branch's command assumptions or change development placeholders to
+  bypass same-checkout artifact preparation.
+
+### Generation freshness
+
+In the runtime repository, start contract changes with `pnpm run generate:schemas`
+from the runtime root. If the public schemas changed relative to your task's base
+revision, run `pnpm run generate:sdk` and commit the schemas and all changed SDK
+projections together. Already-committed schema changes still require this step.
+Generator, generator-dependency, and formatter changes also require regeneration,
+as do handwritten Go/.NET declarations scanned for generated-name collisions.
+Unchanged public schemas and generation inputs do not require SDK projections
+to be regenerated for an internal-only runtime change.
+
+For `sdk-protocol-version.json` or its generator, run
+`npm --prefix <SDK_ROOT>/nodejs run update:protocol-version` and commit all six
+language constants, including Java. Aggregate `generate` refreshes these too.
+Single-language generation and CLI/SDK builds are not an all-six freshness check.
+
+In both repository layouts, the `Check schema and SDK freshness` job in `sdk.yml` owns
+generation and freshness checks for all six languages. Language-specific
+workflows own their builds, tests, and documentation, not duplicate codegen jobs.
 
 ## Boundaries — files you must NOT hand-edit ⛔
 
-- `<SDK_ROOT>/java/sdk/src/generated/java/` — auto-generated by `<SDK_ROOT>/java/scripts/codegen/java.ts`; regenerate with `npm --prefix <SDK_ROOT> run generate:java`.
-- `<SDK_ROOT>/nodejs/src/generated/` — auto-generated by `<SDK_ROOT>/scripts/codegen/typescript.ts`; regenerate with `npm --prefix <SDK_ROOT> run generate:nodejs`.
+- **Generated code (all six SDKs)** — update its inputs or generators and use the
+  generation commands above. This covers schema-derived files, including Go's
+  `go/z*.go` and `go/rpc/z*.go`, and protocol-version constants. Python's
+  `python/copilot/generated/__init__.py` remains handwritten.
 - `<SDK_ROOT>/test/snapshots/` — authoritative test fixtures; add/edit YAML here to change E2E behavior, but don't delete without understanding downstream impact.

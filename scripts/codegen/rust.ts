@@ -1082,13 +1082,14 @@ function emitRustStruct(
 		// A referenced enum can accept future values; its containing field must
 		// still enforce an explicit literal constraint before union selection.
 		lines.push("", `impl ${typeName} {`);
-		for (const {
+		for (const [index, {
 			propName,
 			prop,
 			isReq,
 			rustType,
 			strictBooleanConst,
-		} of constrainedFields) {
+		}] of constrainedFields.entries()) {
+			if (index > 0) lines.push("");
 			const literal = JSON.stringify(strictBooleanConst ?? prop.const);
 			if (strictBooleanConst !== undefined) {
 				const deserializeMismatch = isReq
@@ -2363,14 +2364,11 @@ function generateModRs(): string {
 // ── Format with rustfmt ─────────────────────────────────────────────────────
 
 async function rustfmt(filePath: string): Promise<void> {
-	try {
-		await execFileAsync("rustfmt", ["--edition", "2021", filePath]);
-	} catch (e: unknown) {
-		const error = e as { stderr?: string };
-		console.warn(
-			`rustfmt warning for ${path.basename(filePath)}: ${error.stderr || e}`,
-		);
-	}
+	await execFileAsync(
+		"rustfmt",
+		["--config-path", path.join(REPO_ROOT, "rust/.rustfmt.toml"), path.resolve(filePath)],
+		{ cwd: path.join(REPO_ROOT, "rust") },
+	);
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────

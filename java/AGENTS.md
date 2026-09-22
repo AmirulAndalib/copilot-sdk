@@ -41,8 +41,9 @@ duplicating them in these contributor instructions.
 
 ## Build, format, and test
 
-Use Maven 3.9+ or the checked-in Maven wrapper. Tests also require a supported
-[Node.js version](../nodejs/README.md#prerequisites) for the replay harness and
+Prefer the checked-in Maven wrapper (`./mvnw`, or `.\mvnw.cmd` on Windows).
+Follow [SDK setup](../CONTRIBUTING.md#developing-an-sdk) for the JDK and
+layout-appropriate Node.js version. Tests use Node.js for the replay harness and
 runtime preparation tooling. Maven's `generate-test-resources` phase installs
 their dependencies from the SDK tree. In the runtime repository, prefer
 `npm --prefix <SDK_ROOT> run test:java`; it refreshes the selected schemas and
@@ -51,9 +52,9 @@ Direct Maven commands bypass those prerequisites and are appropriate after
 preparing the checkout, or in the standalone SDK repository.
 
 ```bash
-mvn clean verify
-mvn -pl sdk spotless:apply
-mvn -pl sdk spotless:check checkstyle:check
+./mvnw clean verify
+./mvnw -pl sdk spotless:apply
+./mvnw -pl sdk spotless:check checkstyle:check
 ```
 
 Run `verify` without `-q` or piping through `grep` so failures remain visible.
@@ -78,6 +79,11 @@ layout selects its pinned release schemas:
 ```bash
 npm run generate:java
 ```
+
+The protocol constant `sdk/src/main/java/com/github/copilot/SdkProtocolVersion.java`
+is also generated, despite living outside `src/generated/`. Change the shared
+`<SDK_ROOT>/sdk-protocol-version.json` and run
+`npm --prefix <SDK_ROOT>/nodejs run update:protocol-version` to update all six SDKs.
 
 Use the SDK's selected schema inputs; do not update release-derived CLI pins
 as an incidental part of implementation work.

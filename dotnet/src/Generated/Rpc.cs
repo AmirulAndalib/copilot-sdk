@@ -23689,6 +23689,9 @@ public readonly struct CatalogCapability : IEquatable<CatalogCapability>
     /// <summary>Understands exact candidate selection through model-safe opaque references and host-only candidate-handle hand-off.</summary>
     public static CatalogCapability CatalogSelection { get; } = new("catalog-selection");
 
+    /// <summary>Requires an eligible credential for the selected GitHub.com account before search egress and prohibits client-side anonymous retry, including after HTTP 401 or 403. The credential is scoped to the fixed catalog authority without redirect forwarding. Neither a grant nor successful response proves that the authority accepted the identity or selected a particular backend. Preserve this requirement on every page and retry; callers omitting it retain optional authentication.</summary>
+    public static CatalogCapability CatalogSearchCredentialRequired { get; } = new("catalog-search-credential-required");
+
     /// <summary>Returns a value indicating whether two <see cref="CatalogCapability"/> instances are equivalent.</summary>
     public static bool operator ==(CatalogCapability left, CatalogCapability right) => left.Equals(right);
 

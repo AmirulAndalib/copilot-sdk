@@ -7,31 +7,26 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const SCHEMA_FILES = ["api.schema.json", "session-events.schema.json"];
-const GENERATED_ROOTS = {
-    nodejs: ["nodejs/src/generated/rpc.ts", "nodejs/src/generated/session-events.ts"],
-    python: ["python/copilot/generated/rpc.py", "python/copilot/generated/session_events.py"],
-    go: [
-        "go/rpc/zrpc.go",
-        "go/rpc/zrpc_encoding.go",
-        "go/rpc/zsession_encoding.go",
-        "go/rpc/zsession_events.go",
-        "go/zsession_events.go",
-    ],
-    dotnet: ["dotnet/src/Generated/Rpc.cs", "dotnet/src/Generated/SessionEvents.cs"],
+export const SCHEMA_FILES = ["api.schema.json", "session-events.schema.json"];
+export const GENERATED_ROOTS = {
+    nodejs: ["nodejs/src/generated"],
+    python: ["python/copilot/generated"],
+    go: ["go/z*.go", "go/rpc/z*.go"],
+    dotnet: ["dotnet/src/Generated"],
     java: ["java/sdk/src/generated/java/com/github/copilot/generated"],
-    rust: [
-        "rust/src/generated/api_types.rs",
-        "rust/src/generated/mod.rs",
-        "rust/src/generated/rpc.rs",
-        "rust/src/generated/session_events.rs",
-    ],
+    rust: ["rust/src/generated"],
 };
+const PRESERVED_FILES = { python: ["python/copilot/generated/__init__.py"] };
 
 export function prepareSdkSources({ languages, runtimeRoot, sdkRoot }) {
     const selectedLanguages = [...new Set(languages)];
-    const labels = selectedLanguages.map((language) => `//src/sdk:${language}_projection`);
-    installCodegenDependencies(selectedLanguages, sdkRoot);
+    const labels = [
+        "//src/native/schema-codegen:sdk_schemas",
+        ...selectedLanguages.map((language) => `//src/sdk:${language}_projection`),
+    ];
+    if (selectedLanguages.length > 0) {
+        installCodegenDependencies(selectedLanguages, sdkRoot);
+    }
     const bazelBin = parseBazelInfoPath(runBazel(["info", "bazel-bin"], runtimeRoot, true));
     const previousOutputs = fs.mkdtempSync(path.join(os.tmpdir(), "copilot-sdk-previous-"));
     try {
@@ -56,6 +51,7 @@ export function prepareSdkSources({ languages, runtimeRoot, sdkRoot }) {
             syncGeneratedArchive({
                 archivePath: path.join(bazelBin, `src/sdk/projections/${language}.tar`),
                 generatedRoots: GENERATED_ROOTS[language],
+                preservedFiles: PRESERVED_FILES[language],
                 language,
                 previousArchivePath: path.join(previousOutputs, `${language}.tar`),
                 runtimeRoot,
@@ -151,6 +147,7 @@ export function syncGeneratedArchive({
     generatedRoots,
     language,
     previousArchivePath,
+    preservedFiles = [],
     runtimeRoot,
     sdkRoot,
 }) {
@@ -158,16 +155,34 @@ export function syncGeneratedArchive({
     try {
         const extraction = archiveExtractionInvocation(archivePath, stagingDirectory);
         run(tarCommand(), extraction.args, extraction.cwd);
-        if (rootsEqual(stagingDirectory, sdkRoot, generatedRoots)) {
+        for (const file of listFiles(stagingDirectory)) {
+            if (!matchesGeneratedPath(file, generatedRoots)) {
+                throw new Error(`Undeclared ${language} generated output: ${file}`);
+            }
+        }
+        for (const file of preservedFiles) {
+            copyFileIfPresent(path.join(sdkRoot, file), path.join(stagingDirectory, file));
+        }
+        const roots = expandRoots(generatedRoots, stagingDirectory, sdkRoot);
+        if (rootsEqual(stagingDirectory, sdkRoot, roots)) {
             return false;
         }
-        if (!archiveCanReplaceRoots(previousArchivePath, sdkRoot, generatedRoots, runtimeRoot)) {
-            assertClean(runtimeRoot, generatedRoots.map((root) => path.join("src/sdk", root)));
+        if (!archiveCanReplaceRoots(previousArchivePath, sdkRoot, roots, preservedFiles)) {
+            assertClean(
+                runtimeRoot,
+                [
+                    ...roots.map((root) => path.join("src/sdk", root)),
+                    ...preservedFiles.map((file) => `:(exclude,literal)src/sdk/${file}`),
+                ],
+            );
         }
-        for (const root of generatedRoots) {
+        for (const root of roots) {
             const source = path.join(stagingDirectory, root);
             const destination = path.join(sdkRoot, root);
-            if (fs.statSync(source, { throwIfNoEntry: false })?.isDirectory()) {
+            const sourceStat = fs.statSync(source, { throwIfNoEntry: false });
+            if (!sourceStat) {
+                fs.rmSync(destination, { recursive: true, force: true });
+            } else if (sourceStat.isDirectory()) {
                 fs.rmSync(destination, { recursive: true, force: true });
                 fs.cpSync(source, destination, { recursive: true });
             } else {
@@ -182,7 +197,7 @@ export function syncGeneratedArchive({
     }
 }
 
-function archiveCanReplaceRoots(archivePath, sdkRoot, generatedRoots, runtimeRoot) {
+function archiveCanReplaceRoots(archivePath, sdkRoot, generatedRoots, preservedFiles) {
     if (!archivePath || !fs.statSync(archivePath, { throwIfNoEntry: false })?.isFile()) {
         return generatedRoots.every(
             (root) => !fs.statSync(path.join(sdkRoot, root), { throwIfNoEntry: false }),
@@ -192,6 +207,9 @@ function archiveCanReplaceRoots(archivePath, sdkRoot, generatedRoots, runtimeRoo
     try {
         const extraction = archiveExtractionInvocation(archivePath, stagingDirectory);
         run(tarCommand(), extraction.args, extraction.cwd);
+        for (const file of preservedFiles) {
+            copyFileIfPresent(path.join(sdkRoot, file), path.join(stagingDirectory, file));
+        }
         return generatedRoots.every((root) => {
             const destination = path.join(sdkRoot, root);
             return (
@@ -202,6 +220,44 @@ function archiveCanReplaceRoots(archivePath, sdkRoot, generatedRoots, runtimeRoo
     } finally {
         fs.rmSync(stagingDirectory, { recursive: true, force: true });
     }
+}
+
+export function matchesGeneratedPath(file, roots = Object.values(GENERATED_ROOTS).flat()) {
+    if (Object.values(PRESERVED_FILES).flat().includes(file)) return false;
+    return roots.some((root) => {
+        if (!root.includes("*")) {
+            return file === root || file.startsWith(`${root}/`);
+        }
+        const [prefix, suffix] = root.split("*");
+        return (
+            file.startsWith(prefix) && file.endsWith(suffix) && !file.slice(prefix.length, -suffix.length).includes("/")
+        );
+    });
+}
+
+function listFiles(directory, prefix = "") {
+    return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+        const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+        return entry.isDirectory() ? listFiles(path.join(directory, entry.name), relative) : [relative];
+    });
+}
+
+function expandRoots(roots, ...directories) {
+    return [
+        ...new Set(
+            roots.flatMap((root) => {
+                if (!root.includes("*")) return [root];
+                return directories.flatMap((directory) => {
+                    const parent = path.join(directory, path.dirname(root));
+                    if (!fs.existsSync(parent)) return [];
+                    return fs
+                        .readdirSync(parent)
+                        .map((name) => `${path.dirname(root)}/${name}`)
+                        .filter((file) => matchesGeneratedPath(file, [root]));
+                });
+            }),
+        ),
+    ];
 }
 
 function rootsEqual(leftRoot, rightRoot, roots) {
@@ -253,6 +309,7 @@ function copyExistingDirectory(source, destination) {
 
 function copyFileIfPresent(source, destination) {
     if (fs.statSync(source, { throwIfNoEntry: false })?.isFile()) {
+        fs.mkdirSync(path.dirname(destination), { recursive: true });
         fs.copyFileSync(source, destination);
     }
 }

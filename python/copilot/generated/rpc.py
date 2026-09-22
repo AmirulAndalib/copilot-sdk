@@ -1274,6 +1274,7 @@ class CatalogCapability(Enum):
     """
     AGENT_PLUGIN_DISCOVERY = "agent-plugin-discovery"
     AI_SKILL_DISCOVERY = "ai-skill-discovery"
+    CATALOG_SEARCH_CREDENTIAL_REQUIRED = "catalog-search-credential-required"
     CATALOG_SEARCH_PAGINATION = "catalog-search-pagination"
     CATALOG_SELECTION = "catalog-selection"
     LEGACY_MCP_SERVER_CARD = "legacy-mcp-server-card"

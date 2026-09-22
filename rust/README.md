@@ -1278,19 +1278,21 @@ github-copilot-sdk = { version = "1", features = ["derive"] }
 
 ## Development
 
-Tests require a supported [Node.js version](../nodejs/README.md#prerequisites). From the repository root:
+Follow [SDK development setup](../CONTRIBUTING.md#developing-an-sdk) for this
+crate's pinned Rust toolchain, nightly formatter, and Node/replay-harness
+dependencies. From the SDK root (`src/sdk` in the runtime repository, or the
+standalone repository root):
 
 ```bash
-cd nodejs
-npm ci
+npm run build:rust
+npm run test:rust
+npm run check:rust
 ```
 
-```bash
-cd test/harness
-npm ci
-```
-
-```bash
-cd rust
-cargo test --features test-support
-```
+The runtime layout builds this SDK through Bazel but runs tests through Cargo
+with this crate's toolchain and default features plus `test-support`. For
+non-default `derive` or in-process coverage, use the feature selections in the
+[Rust SDK workflow](../.github/workflows/sdk-rust.yml). Direct native commands bypass the
+facade's runtime preparation; see [AGENTS.md](AGENTS.md#development) for
+same-checkout feature selection and standalone Cargo commands. Runtime paths
+set by the facade do not persist in your shell.

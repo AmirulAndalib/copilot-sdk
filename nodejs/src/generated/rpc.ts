@@ -646,7 +646,9 @@ export type CatalogCapability =
   /** Understands versioned candidate trust snapshots. Protocol-3 callers must require this capability before the runtime adds the optional snapshot field. */
   | "trust-snapshot"
   /** Understands exact candidate selection through model-safe opaque references and host-only candidate-handle hand-off. */
-  | "catalog-selection";
+  | "catalog-selection"
+  /** Requires an eligible credential for the selected GitHub.com account before search egress and prohibits client-side anonymous retry, including after HTTP 401 or 403. The credential is scoped to the fixed catalog authority without redirect forwarding. Neither a grant nor successful response proves that the authority accepted the identity or selected a particular backend. Preserve this requirement on every page and retry; callers omitting it retain optional authentication. */
+  | "catalog-search-credential-required";
 /**
  * Bounded extensible wire-feature identifier. Known values are described by `CatalogCapability`; newer callers may send future identifiers so an older runtime can return a typed negotiation refusal instead of failing schema validation. Capability negotiation establishes contract understanding, while each operation's result separately reports runtime availability.
  *

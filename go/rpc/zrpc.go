@@ -19075,6 +19075,13 @@ const (
 	CatalogCapabilityAgentPluginDiscovery CatalogCapability = "agent-plugin-discovery"
 	// Understands `application/ai-skill` candidates as discovery-only and typed non-installable.
 	CatalogCapabilityAiSkillDiscovery CatalogCapability = "ai-skill-discovery"
+	// Requires an eligible credential for the selected GitHub.com account before search egress
+	// and prohibits client-side anonymous retry, including after HTTP 401 or 403. The
+	// credential is scoped to the fixed catalog authority without redirect forwarding. Neither
+	// a grant nor successful response proves that the authority accepted the identity or
+	// selected a particular backend. Preserve this requirement on every page and retry; callers
+	// omitting it retain optional authentication.
+	CatalogCapabilityCatalogSearchCredentialRequired CatalogCapability = "catalog-search-credential-required"
 	// Understands explicit numbered navigation and authority-reported pagination metadata with
 	// opaque tokens. Advertised and granted only when requested.
 	CatalogCapabilityCatalogSearchPagination CatalogCapability = "catalog-search-pagination"

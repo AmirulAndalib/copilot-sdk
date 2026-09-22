@@ -3732,30 +3732,24 @@ mod tests {
 
     #[cfg(any(unix, windows))]
     fn test_child_command(temp: &Path, ready: &Path, survived: &Path) -> Command {
-        #[cfg(unix)]
-        let mut command = {
-            let mut command =
-                Client::build_command(Path::new("sh"), &ClientOptions::default(), temp);
-            command.args([
-                "-c",
-                "printf ready > \"$READY\"; sleep 1; printf survived > \"$SURVIVED\"",
-            ]);
-            command
-        };
+        let mut command = Client::build_command(Path::new("node"), &ClientOptions::default(), temp);
         #[cfg(windows)]
-        let mut command = {
-            let mut command =
-                Client::build_command(Path::new("powershell.exe"), &ClientOptions::default(), temp);
-            command.args([
-                "-NoLogo",
-                "-NoProfile",
-                "-NonInteractive",
-                "-Command",
-                "Set-Content -LiteralPath $env:READY ready; Start-Sleep -Seconds 1; Set-Content -LiteralPath $env:SURVIVED survived",
-            ]);
-            command
-        };
-        command.env("READY", ready).env("SURVIVED", survived);
+        {
+            const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+            command.creation_flags(CREATE_NO_WINDOW);
+        }
+        command
+            .args([
+                "-e",
+                r#"
+                const fs = require("node:fs");
+                fs.writeFileSync(process.env.READY, "ready");
+                setTimeout(() => fs.writeFileSync(process.env.SURVIVED, "survived"), 1000);
+                "#,
+            ])
+            .env("READY", ready)
+            .env("SURVIVED", survived)
+            .stderr(Stdio::inherit());
         command
     }
 

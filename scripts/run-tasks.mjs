@@ -16,8 +16,23 @@ const languages = ["nodejs", "python", "go", "dotnet", "java", "rust"];
 const maven = process.platform === "win32" ? "mvnw.cmd" : "./mvnw";
 
 const command = (cwd, executable, args) => ({ args, cwd, executable });
+const rustFormatCommand = command("rust", "cargo", [
+    "+nightly-2026-04-14",
+    "fmt",
+    "--all",
+    "--",
+    "--config-path",
+    ".rustfmt.nightly.toml",
+]);
+const protocolGeneration = command("scripts/codegen", "npm", [
+    "exec",
+    "--",
+    "tsx",
+    "../../nodejs/scripts/update-protocol-version.ts",
+]);
 
 const tasks = {
+    "generate:schemas": {},
     build: {
         nodejs: [
             command("nodejs", "npm", ["ci", "--ignore-scripts"]),
@@ -75,16 +90,7 @@ const tasks = {
         go: [{ kind: "gofmt", write: true }],
         dotnet: [command("dotnet", "dotnet", ["format", "GitHub.Copilot.SDK.slnx"])],
         java: [command("java", maven, ["spotless:apply"])],
-        rust: [
-            command("rust", "cargo", [
-                "+nightly-2026-04-14",
-                "fmt",
-                "--all",
-                "--",
-                "--config-path",
-                ".rustfmt.nightly.toml",
-            ]),
-        ],
+        rust: [rustFormatCommand],
     },
     "format:check": {
         nodejs: [command("nodejs", "npm", ["run", "format:check"])],
@@ -292,14 +298,20 @@ export function runTasks(verb, language, options = {}) {
         process.env.COPILOT_RUNTIME_SOURCE ??
         (runtimeRoot ? "checkout" : undefined);
     let environment;
+    if (verb === "generate:schemas" && (runtimeSource !== "checkout" || !runtimeRoot || language)) {
+        throw new Error("generate:schemas requires a runtime checkout and does not accept a language");
+    }
     if (
         runtimeSource === "checkout" &&
         runtimeRoot &&
-        ["build", "generate", "test", "test:default"].includes(verb)
+        ["build", "generate", "generate:schemas", "test", "test:default"].includes(verb)
     ) {
         const selectedLanguages = language ? [language] : Object.keys(tasks[verb]);
         prepareSdkSources({ languages: selectedLanguages, runtimeRoot, sdkRoot });
-        if (verb === "generate") {
+        if (verb === "generate" || verb === "generate:schemas") {
+            if (verb === "generate" && !language) {
+                runCommand(protocolGeneration);
+            }
             return;
         }
         if (
@@ -340,6 +352,9 @@ export function runTasks(verb, language, options = {}) {
                 runCommand(step, environment);
             }
         }
+    }
+    if (verb === "generate" && !language) {
+        runCommand(protocolGeneration, environment);
     }
 }
 

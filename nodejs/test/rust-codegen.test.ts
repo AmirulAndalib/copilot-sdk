@@ -75,6 +75,22 @@ describe("Rust API type codegen", () => {
         }
     );
 
+    it("separates adjacent constant helpers before formatting", () => {
+        const property: JSONSchema7 = { $ref: "#/definitions/Kind", const: "ai-skill" };
+        const code = generateApiTypesCode({
+            definitions: {
+                Kind: { type: "string", enum: ["ai-skill", "mcp-server"] },
+                Candidate: {
+                    type: "object",
+                    required: ["first", "second"],
+                    properties: { first: property, second: { ...property } },
+                },
+            },
+        } as ApiSchema);
+
+        expect(code).toContain("    }\n\n    fn deserialize_second");
+    });
+
     it("distinguishes a protocol-defined unknown value from the forward-compatible fallback", () => {
         const code = generateApiTypesCode({
             definitions: {

@@ -33,7 +33,9 @@ public enum CatalogCapability {
     /** The {@code trust-snapshot} variant. */
     TRUST_SNAPSHOT("trust-snapshot"),
     /** The {@code catalog-selection} variant. */
-    CATALOG_SELECTION("catalog-selection");
+    CATALOG_SELECTION("catalog-selection"),
+    /** The {@code catalog-search-credential-required} variant. */
+    CATALOG_SEARCH_CREDENTIAL_REQUIRED("catalog-search-credential-required");
 
     private final String value;
     CatalogCapability(String value) { this.value = value; }

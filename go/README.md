@@ -17,7 +17,11 @@ go get github.com/github/copilot-sdk/go
 
 ## Run the Sample
 
-Try the interactive chat sample (from the repo root):
+Try the interactive chat sample from the SDK root (`src/sdk` when nested).
+In the runtime repository, first run `pnpm run build:cli` from the runtime root
+to prepare the same-checkout executable, then return to `src/sdk`.
+Building the Go SDK alone does not build the runtime. For dependency
+prerequisites, see [development setup](#development).
 
 ```bash
 cd nodejs
@@ -1095,20 +1099,21 @@ Communicates with CLI via TCP socket. Useful for distributed scenarios.
 
 ## Development
 
-Tests require a supported [Node.js version](../nodejs/README.md#prerequisites). From the repository root:
+Follow [SDK development setup](../CONTRIBUTING.md#developing-an-sdk) for Go,
+golangci-lint, and the Node/replay-harness dependencies. From the SDK root
+(`src/sdk` in the runtime repository, or the standalone repository root):
 
 ```bash
-cd nodejs
-npm ci
+npm run build:go
+npm run test:go
+npm run check:go
 ```
 
-```bash
-cd test/harness
-npm ci
-```
+For focused tests, use `go test` selectors from `go/` after
+[preparing the runtime](../CONTRIBUTING.md#testing-an-unreleased-runtime-api).
+The existing race-enabled native test script is also available there:
 
 ```bash
-cd go
 ./test.sh
 ```
 

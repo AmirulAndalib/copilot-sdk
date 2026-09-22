@@ -211,6 +211,73 @@ test("replaces schemas that match the prior Bazel output", (t) => {
     );
 });
 
+test("syncs new and obsolete Go outputs without changing handwritten neighbors", (t) => {
+    const root = createGitFixture(t);
+    const sdkRoot = path.join(root, "src/sdk");
+    writeFile(path.join(sdkRoot, "go/rpc/zobsolete.go"), "obsolete");
+    writeFile(path.join(sdkRoot, "go/rpc/handwritten.go"), "handwritten");
+    run("git", ["add", "."], root);
+    run("git", ["commit", "-m", "fixture"], root);
+    const staged = path.join(root, "staged");
+    writeFile(path.join(staged, "go/rpc/znew.go"), "new");
+    const archivePath = path.join(root, "projection.tar");
+    run(tarCommand(), ["-cf", archivePath, "-C", staged, "."], root);
+    syncGeneratedArchive({
+        archivePath,
+        generatedRoots: ["go/z*.go", "go/rpc/z*.go"],
+        language: "go",
+        runtimeRoot: root,
+        sdkRoot,
+    });
+    assert.equal(fs.existsSync(path.join(sdkRoot, "go/rpc/zobsolete.go")), false);
+    assert.equal(fs.readFileSync(path.join(sdkRoot, "go/rpc/znew.go"), "utf8"), "new");
+    assert.equal(fs.readFileSync(path.join(sdkRoot, "go/rpc/handwritten.go"), "utf8"), "handwritten");
+});
+
+test("preserves an edited Python initializer on a first generation without a cached archive", (t) => {
+    const root = createGitFixture(t);
+    const sdkRoot = path.join(root, "src/sdk");
+    const initializer = "python/copilot/generated/__init__.py";
+    writeFile(path.join(sdkRoot, initializer), "handwritten");
+    writeFile(path.join(sdkRoot, "python/copilot/generated/obsolete.py"), "obsolete");
+    run("git", ["add", "."], root);
+    run("git", ["commit", "-m", "fixture"], root);
+    writeFile(path.join(sdkRoot, initializer), "local handwritten edit");
+    const staged = path.join(root, "staged");
+    writeFile(path.join(staged, "python/copilot/generated/rpc.py"), "generated");
+    const archivePath = path.join(root, "projection.tar");
+    run(tarCommand(), ["-cf", archivePath, "-C", staged, "."], root);
+    syncGeneratedArchive({
+        archivePath,
+        generatedRoots: ["python/copilot/generated"],
+        preservedFiles: [initializer],
+        language: "python",
+        runtimeRoot: root,
+        sdkRoot,
+    });
+    assert.equal(fs.readFileSync(path.join(sdkRoot, initializer), "utf8"), "local handwritten edit");
+    assert.equal(fs.existsSync(path.join(sdkRoot, "python/copilot/generated/obsolete.py")), false);
+});
+
+test("rejects archive outputs outside the declared generation roots", (t) => {
+    const root = createGitFixture(t);
+    const staged = path.join(root, "staged");
+    writeFile(path.join(staged, "nodejs/src/new-output.ts"), "generated");
+    const archivePath = path.join(root, "projection.tar");
+    run(tarCommand(), ["-cf", archivePath, "-C", staged, "."], root);
+    assert.throws(
+        () =>
+            syncGeneratedArchive({
+                archivePath,
+                generatedRoots: ["nodejs/src/generated"],
+                language: "nodejs",
+                runtimeRoot: root,
+                sdkRoot: path.join(root, "src/sdk"),
+            }),
+        /Undeclared nodejs generated output: nodejs\/src\/new-output.ts/,
+    );
+});
+
 function createGitFixture(t) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "copilot-sdk-build-prerequisites-"));
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
