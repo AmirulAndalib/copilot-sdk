@@ -3371,6 +3371,12 @@ public sealed partial class SessionFusionResolvedData
     [JsonPropertyName("fusionId")]
     public required string FusionId { get; set; }
 
+    /// <summary>Short human-readable summary of the selected workflow, suitable for immediate client display after routing. May be absent in older durable events; omit the explanation or derive one from pattern and phasePlan. Display text, not a stable machine-readable value.</summary>
+    [Experimental(Diagnostics.Experimental)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("hint")]
+    public string? Hint { get; set; }
+
     /// <summary>Version of the executable model universe used for selection.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("modelUniverseVersion")]

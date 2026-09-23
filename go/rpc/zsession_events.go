@@ -1197,6 +1197,9 @@ type SessionFusionResolvedData struct {
 	FollowUpModel string `json:"followUpModel"`
 	// Stable identifier for the resolved HydraFusion turn.
 	FusionID string `json:"fusionId"`
+	// Short human-readable summary of the selected workflow, suitable for immediate client display after routing. May be absent in older durable events; omit the explanation or derive one from pattern and phasePlan. Display text, not a stable machine-readable value.
+	// Experimental: Hint is part of an experimental API and may change or be removed.
+	Hint *string `json:"hint,omitempty"`
 	// Version of the executable model universe used for selection.
 	ModelUniverseVersion *string `json:"modelUniverseVersion,omitempty"`
 	// Validated orchestration pattern selected for the turn.

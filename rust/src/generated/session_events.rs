@@ -2463,6 +2463,16 @@ pub struct SessionFusionResolvedData {
     pub follow_up_model: String,
     /// Stable identifier for the resolved HydraFusion turn.
     pub fusion_id: String,
+    /// Short human-readable summary of the selected workflow, suitable for immediate client display after routing. May be absent in older durable events; omit the explanation or derive one from pattern and phasePlan. Display text, not a stable machine-readable value.
+    ///
+    /// <div class="warning">
+    ///
+    /// **Experimental.** This type is part of an experimental wire-protocol surface
+    /// and may change or be removed in future SDK or CLI releases.
+    ///
+    /// </div>
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hint: Option<String>,
     /// Version of the executable model universe used for selection.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model_universe_version: Option<String>,

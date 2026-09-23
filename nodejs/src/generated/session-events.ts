@@ -4015,6 +4015,12 @@ export interface FusionResolvedData {
    */
   fusionId: string;
   /**
+   * Short human-readable summary of the selected workflow, suitable for immediate client display after routing. May be absent in older durable events; omit the explanation or derive one from pattern and phasePlan. Display text, not a stable machine-readable value.
+   *
+   * @experimental
+   */
+  hint?: string;
+  /**
    * Version of the executable model universe used for selection.
    */
   modelUniverseVersion?: string;
