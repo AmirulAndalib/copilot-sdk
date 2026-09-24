@@ -724,6 +724,8 @@ When streaming is off (the default), only the final `assistant.message` and `ass
 
 `session.subscribe()` can only be called once the session exists, so any event the runtime emits while `session.create` / `session.resume` is still in flight is broadcast with no receiver installed and is not delivered. Ephemeral events such as `session.idle` are not written to the session log either, so `get_messages` can't recover them afterwards.
 
+For create and resume calls with a client-known session ID, the SDK starts its event loop before sending the RPC so it can answer session-scoped requests issued during startup. Cloud creates with a server-assigned ID register the loop after the response identifies the session.
+
 `Client::prepare_session` / `Client::prepare_resume_session` close that window. They return a `PreparedSession` that owns the session's broadcast channel up front:
 
 ```rust,ignore
@@ -865,7 +867,7 @@ For fire-and-forget messaging where you need to block until the agent finishes:
 use std::time::Duration;
 use github_copilot_sdk::MessageOptions;
 
-// Sends a message and blocks until session.idle or session.error
+// Sends a message and blocks until the root session.idle or session.error
 session
     .send_and_wait(
         MessageOptions::new("Fix the bug").with_wait_timeout(Duration::from_secs(120)),
@@ -874,7 +876,11 @@ session
 ```
 
 Default timeout is 60 seconds. Only one unformatted `send_and_wait` can be active
-per session; it also prevents other sends until it completes.
+per session; it also prevents other sends until it completes. Events attributed
+to a sub-agent (with a non-empty `agentId`) are still delivered to subscribers,
+but cannot supply the reply or end the parent's wait.
+The terminal event is queued to existing subscriptions before the wait returns;
+subscribers consume their streams independently and do not delay completion.
 
 ### Structured output (experimental)
 
@@ -1278,21 +1284,19 @@ github-copilot-sdk = { version = "1", features = ["derive"] }
 
 ## Development
 
-Follow [SDK development setup](../CONTRIBUTING.md#developing-an-sdk) for this
-crate's pinned Rust toolchain, nightly formatter, and Node/replay-harness
-dependencies. From the SDK root (`src/sdk` in the runtime repository, or the
-standalone repository root):
+Tests require a supported [Node.js version](../nodejs/README.md#prerequisites). From the repository root:
 
 ```bash
-npm run build:rust
-npm run test:rust
-npm run check:rust
+cd nodejs
+npm ci
 ```
 
-The runtime layout builds this SDK through Bazel but runs tests through Cargo
-with this crate's toolchain and default features plus `test-support`. For
-non-default `derive` or in-process coverage, use the feature selections in the
-[Rust SDK workflow](../.github/workflows/sdk-rust.yml). Direct native commands bypass the
-facade's runtime preparation; see [AGENTS.md](AGENTS.md#development) for
-same-checkout feature selection and standalone Cargo commands. Runtime paths
-set by the facade do not persist in your shell.
+```bash
+cd test/harness
+npm ci
+```
+
+```bash
+cd rust
+cargo test --features test-support
+```

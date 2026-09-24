@@ -2918,11 +2918,15 @@ export interface SnapshotRewindEvent {
  */
 export interface SnapshotRewindData {
   /**
+   * The removed events, starting with `upToEventId`. Later events not listed were kept, such as a background agent's events that interleaved with a withdrawn turn
+   */
+  eventIds?: string[];
+  /**
    * Number of events that were removed by the rewind
    */
   eventsRemoved: number;
   /**
-   * Event ID that was rewound to; this event and all after it were removed
+   * First removed event. Without `eventIds`, it and every event after it were removed
    */
   upToEventId: string;
 }
@@ -3628,7 +3632,7 @@ export interface CompactionCompleteCompactionTokensUsedCopilotUsageTokenDetail {
   tokenType: string;
 }
 /**
- * Original request-level and effective conversation reasoning effort for a Responses history boundary
+ * Original request-level and effective conversation reasoning effort for a provider history boundary; the historical type name is retained for compatibility
  */
 export interface ResponsesReasoning {
   /**
@@ -5725,6 +5729,10 @@ export interface FusionAttribution {
    * Stable identifier for the HydraFusion turn that produced the event.
    */
   fusionId: string;
+  /**
+   * Whether this model request consumed a user steering message rather than only internal Fusion work.
+   */
+  hasUserSteering?: boolean;
   /**
    * HydraFusion orchestration pattern selected for the turn.
    */
@@ -10854,6 +10862,10 @@ export interface McpOauthRequiredStaticClientConfig {
    * Whether this is a public OAuth client
    */
   publicClient?: boolean;
+  /**
+   * Configured OAuth scope string used when the server challenge omits scope or provides an empty scope
+   */
+  scope?: string;
 }
 /**
  * OAuth WWW-Authenticate parameters parsed from an MCP auth challenge

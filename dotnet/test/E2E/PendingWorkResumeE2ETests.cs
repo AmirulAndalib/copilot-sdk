@@ -126,10 +126,17 @@ public class PendingWorkResumeE2ETests(E2ETestFixture fixture, ITestOutputHelper
                 OnPermissionRequest = PermissionHandler.ApproveAll,
             });
 
+            var finalResponse = TestHelper.GetNextEventOfTypeAsync<AssistantMessageEvent>(
+                session2,
+                message => message.Data.Content?.Contains("EXTERNAL_RESUMED_BETA", StringComparison.Ordinal) == true,
+                PendingWorkTimeout);
+            var resumedTurnIdle = TestHelper.GetNextEventOfTypeAsync<SessionIdleEvent>(session2, PendingWorkTimeout);
             var toolResult = await session2.Rpc.Tools.HandlePendingToolCallAsync(
                 toolEvent.Data.RequestId,
                 result: JsonDocument.Parse("\"EXTERNAL_RESUMED_BETA\"").RootElement.Clone());
             Assert.True(toolResult.Success);
+            Assert.Contains("EXTERNAL_RESUMED_BETA", (await finalResponse).Data.Content);
+            await resumedTurnIdle;
 
             await session2.DisposeAsync();
             await resumedClient.ForceStopAsync();

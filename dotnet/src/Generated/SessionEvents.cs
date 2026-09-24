@@ -412,7 +412,7 @@ public sealed partial class SessionModelDeselectedEvent : SessionEvent
 
 /// <summary>Live-only Auto preference recommendation from Copilot API after a successful Auto model call.</summary>
 /// <remarks>Represents the <c>session.auto_tier_recommendation</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionAutoTierRecommendationEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -478,7 +478,7 @@ public sealed partial class SessionSessionLimitsChangedEvent : SessionEvent
 
 /// <summary>Permission-mode transition details.</summary>
 /// <remarks>Represents the <c>session.permissions_changed</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionPermissionsChangedEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -674,7 +674,7 @@ public sealed partial class SessionTaskCompleteEvent : SessionEvent
 
 /// <summary>Behavior-neutral record of structured runtime facts present when an agent completion decision is accepted.</summary>
 /// <remarks>Represents the <c>session.completion_receipt</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionCompletionReceiptEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -688,7 +688,7 @@ public sealed partial class SessionCompletionReceiptEvent : SessionEvent
 
 /// <summary>Experimental transient signal that HydraFusion routing has started for an eligible turn.</summary>
 /// <remarks>Represents the <c>session.fusion_route_started</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionFusionRouteStartedEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -702,7 +702,7 @@ public sealed partial class SessionFusionRouteStartedEvent : SessionEvent
 
 /// <summary>Experimental durable HydraFusion routing failure and the deterministic concrete fallback selected for the turn.</summary>
 /// <remarks>Represents the <c>session.fusion_route_failed</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionFusionRouteFailedEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -716,7 +716,7 @@ public sealed partial class SessionFusionRouteFailedEvent : SessionEvent
 
 /// <summary>Experimental durable validated HydraFusion route and turn policy.</summary>
 /// <remarks>Represents the <c>session.fusion_resolved</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionFusionResolvedEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -730,7 +730,7 @@ public sealed partial class SessionFusionResolvedEvent : SessionEvent
 
 /// <summary>Experimental durable aggregate outcome of a HydraFusion turn.</summary>
 /// <remarks>Represents the <c>session.fusion_completed</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionFusionCompletedEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -835,7 +835,7 @@ public sealed partial class AssistantIntentEvent : SessionEvent
 
 /// <summary>Experimental transient HydraFusion phase/model/role signal.</summary>
 /// <remarks>Represents the <c>assistant.fusion_phase_started</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class AssistantFusionPhaseStartedEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -849,7 +849,7 @@ public sealed partial class AssistantFusionPhaseStartedEvent : SessionEvent
 
 /// <summary>Experimental content-safe activity signal for a running HydraFusion phase.</summary>
 /// <remarks>Represents the <c>assistant.fusion_phase_activity</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class AssistantFusionPhaseActivityEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -863,7 +863,7 @@ public sealed partial class AssistantFusionPhaseActivityEvent : SessionEvent
 
 /// <summary>Experimental durable HydraFusion phase output and lossless replay checkpoint.</summary>
 /// <remarks>Represents the <c>assistant.fusion_phase_completed</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class AssistantFusionPhaseCompletedEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -877,7 +877,7 @@ public sealed partial class AssistantFusionPhaseCompletedEvent : SessionEvent
 
 /// <summary>Experimental durable typed HydraFusion phase failure and degradation transition.</summary>
 /// <remarks>Represents the <c>assistant.fusion_phase_failed</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class AssistantFusionPhaseFailedEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -1190,7 +1190,7 @@ public sealed partial class SkillInvokedEvent : SessionEvent
 
 /// <summary>Internal durable skill invocation receipt whose content resolves from an earlier inline skill event in the same session.</summary>
 /// <remarks>Represents the <c>skill.invoked_ref</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SkillInvokedRefEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -1204,7 +1204,7 @@ public sealed partial class SkillInvokedRefEvent : SessionEvent
 
 /// <summary>Exact skill context delivered to the model during a tool phase. This is not a user submission or another skill invocation.</summary>
 /// <remarks>Represents the <c>skill.context_delivered</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SkillContextDeliveredEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -1218,7 +1218,7 @@ public sealed partial class SkillContextDeliveredEvent : SessionEvent
 
 /// <summary>Internal durable receipt that reconstructs exact model-visible skill context from earlier session content.</summary>
 /// <remarks>Represents the <c>skill.context_delivered_ref</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SkillContextDeliveredRefEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -1362,7 +1362,7 @@ public sealed partial class HookProgressEvent : SessionEvent
 
 /// <summary>Canonical bytes for a content-addressed binary asset shared by reference across events.</summary>
 /// <remarks>Represents the <c>session.binary_asset</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionBinaryAssetEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -1428,7 +1428,7 @@ public sealed partial class PermissionCompletedEvent : SessionEvent
 
 /// <summary>Records that a live authorization record from an earlier human decision in this session contained a permission proposal, so it ran without another prompt. This mints no authority: it accounts for one more effect against the prior grant, which is what lets a replayed session agree with the live one about how much of that grant is left.</summary>
 /// <remarks>Represents the <c>permission.carriedForward</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class PermissionCarriedForwardEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -1442,7 +1442,7 @@ public sealed partial class PermissionCarriedForwardEvent : SessionEvent
 
 /// <summary>Freezes one blinded, verbatim-verified authorization claim the runtime minted from a human user message, so a resumed session re-establishes the same grant deterministically instead of re-running the extraction model. This mints no authority on its own: it records what a blinded proposer pointed at and the trusted discriminator the runtime established, and deterministic establishment runs on replay. Persisted so recorded authority survives compaction and process resume.</summary>
 /// <remarks>Represents the <c>permission.messageAuthorization</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class PermissionMessageAuthorizationEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -1456,7 +1456,7 @@ public sealed partial class PermissionMessageAuthorizationEvent : SessionEvent
 
 /// <summary>Records that one human turn has been read by the blinded authorization proposer, whether or not it minted anything, so a resumed session does not re-run the extraction model on a turn the live session already read. Also records whether that pass activates ongoing extraction; contextual-assent-only passes do not, so unrelated future messages remain outside extraction.</summary>
 /// <remarks>Represents the <c>permission.messageAuthorizationRead</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class PermissionMessageAuthorizationReadEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -1470,7 +1470,7 @@ public sealed partial class PermissionMessageAuthorizationReadEvent : SessionEve
 
 /// <summary>Records that message-backed authorization could not safely represent one human turn before compaction. The runtime may compact the original message after this marker is durable, but message-derived carry-forward and assisted auto-approval remain disabled for the rest of the session so subsequent commands continue through the ordinary permission prompt.</summary>
 /// <remarks>Represents the <c>permission.messageAuthorizationDegraded</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class PermissionMessageAuthorizationDegradedEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -1484,7 +1484,7 @@ public sealed partial class PermissionMessageAuthorizationDegradedEvent : Sessio
 
 /// <summary>Records that deterministic text recognition found likely assent in the human turn immediately following a root Autopilot permission request that was blocked because no interactive response was available. This event grants no authority; its model-facing projection only suggests retrying the unchanged operation.</summary>
 /// <remarks>Represents the <c>permission.assentDetected</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class PermissionAssentDetectedEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -1498,7 +1498,7 @@ public sealed partial class PermissionAssentDetectedEvent : SessionEvent
 
 /// <summary>Freezes a blinded contextual authorization proposal whose verbatim human span was deterministically bound to the immediately preceding blocked permission request. The event carries no action fields; replay re-derives the exact action from the earlier permission request and mints a one-shot message grant only when the binding and span still verify.</summary>
 /// <remarks>Represents the <c>permission.contextualAuthorization</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class PermissionContextualAuthorizationEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -1655,7 +1655,7 @@ public sealed partial class SessionCustomNotificationEvent : SessionEvent
 
 /// <summary>Ordered output and terminal state for a transient query that does not modify conversation history.</summary>
 /// <remarks>Represents the <c>ui.ephemeral_query</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class UiEphemeralQueryEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -1786,7 +1786,7 @@ public sealed partial class SessionLimitsExhaustedCompletedEvent : SessionEvent
 
 /// <summary>Auto Intent resolution: the concrete model the session settled on for the first prompt of an auto-mode session, and why. Lets SDK clients render the chosen model and the full reason it was picked. The core selection fields (chosenModel/reasoningBucket/categoryScores) are stable; the routing-analytics fields (predictedLabel/confidence/candidateModels) mirror the upstream intent service and may evolve, hence the event's experimental stability.</summary>
 /// <remarks>Represents the <c>session.auto_mode_resolved</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionAutoModeResolvedEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -1800,7 +1800,7 @@ public sealed partial class SessionAutoModeResolvedEvent : SessionEvent
 
 /// <summary>Enterprise managed-settings resolution: the effective managed settings the session applied and which channels contributed, so SDK clients can show users what is enterprise-managed. Fires whenever managed policy is (re)applied — at session start, on resume, and on account switch. This is an ephemeral live snapshot (delivered to subscribers but not persisted to the session event log), because at session start it resolves before `session.start` is emitted. Device values take precedence over server values, then the policy helper, per ordinary key, while permissions compose restrictively across device, server, policy-helper, and SDK-client layers. The account-scoped `getManagedSettings()` API does not include session-local client injection. Marked experimental while the managed-settings surface stabilizes.</summary>
 /// <remarks>Represents the <c>session.managed_settings_resolved</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionManagedSettingsResolvedEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -1814,7 +1814,7 @@ public sealed partial class SessionManagedSettingsResolvedEvent : SessionEvent
 
 /// <summary>Runtime enforcement of enterprise managed settings: fires when the session blocks or caps a runtime action because enterprise policy governs it, so SDK clients can explain *why* an action was governed. Unlike `session.managed_settings_resolved` (which reports *what* is managed), this reports a concrete governed action — e.g. a user or host tried to turn on a bypass-permissions escalation while policy disables it. Emitted live (not persisted to the session event log) on user/host-initiated attempts only, never for silent policy application. Marked experimental while the managed-settings surface stabilizes.</summary>
 /// <remarks>Represents the <c>session.managed_settings_enforced</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionManagedSettingsEnforcedEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -1906,7 +1906,7 @@ public sealed partial class SessionBackgroundTasksChangedEvent : SessionEvent
 
 /// <summary>Ephemeral invalidation signal for a changed factory run.</summary>
 /// <remarks>Represents the <c>factory.run_updated</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class FactoryRunUpdatedEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -1920,7 +1920,7 @@ public sealed partial class FactoryRunUpdatedEvent : SessionEvent
 
 /// <summary>Ephemeral signal that a factory run attempt began executing.</summary>
 /// <remarks>Represents the <c>factory.run_started</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class FactoryRunStartedEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -1934,7 +1934,7 @@ public sealed partial class FactoryRunStartedEvent : SessionEvent
 
 /// <summary>Ephemeral signal that a factory run reached a terminal status.</summary>
 /// <remarks>Represents the <c>factory.run_settled</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class FactoryRunSettledEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -2078,7 +2078,7 @@ public sealed partial class SessionExtensionsLoadedEvent : SessionEvent
 
 /// <summary>Payload of `session.canvas.opened` with canvas instance and provider IDs plus optional icon, title, status, URL, and input.</summary>
 /// <remarks>Represents the <c>session.canvas.opened</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionCanvasOpenedEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -2092,7 +2092,7 @@ public sealed partial class SessionCanvasOpenedEvent : SessionEvent
 
 /// <summary>Payload of `session.canvas.registry_changed` listing the canvas declarations currently available.</summary>
 /// <remarks>Represents the <c>session.canvas.registry_changed</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionCanvasRegistryChangedEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -2106,7 +2106,7 @@ public sealed partial class SessionCanvasRegistryChangedEvent : SessionEvent
 
 /// <summary>Payload of `session.canvas.closed` with the closed canvas instance ID, provider ID, and canvas ID.</summary>
 /// <remarks>Represents the <c>session.canvas.closed</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionCanvasClosedEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -2120,7 +2120,7 @@ public sealed partial class SessionCanvasClosedEvent : SessionEvent
 
 /// <summary>Transient signal that an open canvas instance's provider has dropped (for example the extension is reloading mid-session). The host should keep the panel mounted and surface a reconnecting affordance rather than tearing it down; a subsequent `session.canvas.opened` for the same instanceId clears the affordance once the provider reconnects with a fresh url. Ephemeral and never persisted, so it is never replayed on cold resume.</summary>
 /// <remarks>Represents the <c>session.canvas.unavailable</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionCanvasUnavailableEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -2134,7 +2134,7 @@ public sealed partial class SessionCanvasUnavailableEvent : SessionEvent
 
 /// <summary>Durable record that a canvas instance is open, used to restore open canvases on cold session resume. Intentionally omits the transient url and availability.</summary>
 /// <remarks>Represents the <c>session.canvas.recorded</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionCanvasRecordedEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -2148,7 +2148,7 @@ public sealed partial class SessionCanvasRecordedEvent : SessionEvent
 
 /// <summary>Durable record that a canvas instance was closed, superseding a prior instance_recorded during resume replay.</summary>
 /// <remarks>Represents the <c>session.canvas.removed</c> event.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionCanvasRemovedEvent : SessionEvent
 {
     /// <inheritdoc />
@@ -2662,7 +2662,7 @@ public sealed partial class SessionModelDeselectedData
 }
 
 /// <summary>Live-only Auto preference recommendation from Copilot API after a successful Auto model call.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionAutoTierRecommendationData
 {
     /// <summary>Recommended Auto preference.</summary>
@@ -2721,23 +2721,23 @@ public sealed partial class SessionSessionLimitsChangedData
 }
 
 /// <summary>Permission-mode transition details.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionPermissionsChangedData
 {
     /// <summary>Explicit LLM judge model override used by assisted mode; omitted when the provider default applies.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("assistedApprovalModel")]
     public string? AssistedApprovalModel { get; set; }
 
     /// <summary>Permission mode after the change.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("mode")]
     public PermissionMode? Mode { get; set; }
 
     /// <summary>Permission mode before the change.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("previousMode")]
     public PermissionMode? PreviousMode { get; set; }
@@ -2844,11 +2844,16 @@ public sealed partial class SessionTruncationData
 /// <summary>Session rewind details including target event and count of removed events.</summary>
 public sealed partial class SessionSnapshotRewindData
 {
+    /// <summary>The removed events, starting with `upToEventId`. Later events not listed were kept, such as a background agent's events that interleaved with a withdrawn turn.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("eventIds")]
+    public string[]? EventIds { get; set; }
+
     /// <summary>Number of events that were removed by the rewind.</summary>
     [JsonPropertyName("eventsRemoved")]
     public required long EventsRemoved { get; set; }
 
-    /// <summary>Event ID that was rewound to; this event and all after it were removed.</summary>
+    /// <summary>First removed event. Without `eventIds`, it and every event after it were removed.</summary>
     [JsonPropertyName("upToEventId")]
     public required string UpToEventId { get; set; }
 }
@@ -2923,7 +2928,7 @@ public sealed partial class SessionShutdownData
     public required TimeSpan TotalApiDuration { get; set; }
 
     /// <summary>Session-wide accumulated nano-AI units cost.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("totalNanoAiu")]
     public double? TotalNanoAiu { get; set; }
@@ -3251,7 +3256,7 @@ public sealed partial class SessionTaskCompleteData
 }
 
 /// <summary>Behavior-neutral record of structured runtime facts present when an agent completion decision is accepted.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionCompletionReceiptData
 {
     /// <summary>One-based accepted completion receipt ordinal in the durable session history.</summary>
@@ -3289,7 +3294,7 @@ public sealed partial class SessionCompletionReceiptData
 }
 
 /// <summary>Experimental transient signal that HydraFusion routing has started for an eligible turn.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionFusionRouteStartedData
 {
     /// <summary>Identifier for this routing attempt before a durable Fusion turn exists.</summary>
@@ -3312,7 +3317,7 @@ public sealed partial class SessionFusionRouteStartedData
 }
 
 /// <summary>Experimental durable HydraFusion routing failure and the deterministic concrete fallback selected for the turn.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionFusionRouteFailedData
 {
     /// <summary>Identifier of the routing attempt that failed.</summary>
@@ -3347,7 +3352,7 @@ public sealed partial class SessionFusionRouteFailedData
 }
 
 /// <summary>Experimental durable validated HydraFusion route and turn policy.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionFusionResolvedData
 {
     /// <summary>Version of the validated HydraFusion event contract.</summary>
@@ -3372,7 +3377,7 @@ public sealed partial class SessionFusionResolvedData
     public required string FusionId { get; set; }
 
     /// <summary>Short human-readable summary of the selected workflow, suitable for immediate client display after routing. May be absent in older durable events; omit the explanation or derive one from pattern and phasePlan. Display text, not a stable machine-readable value.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("hint")]
     public string? Hint { get; set; }
@@ -3387,7 +3392,7 @@ public sealed partial class SessionFusionResolvedData
     public required FusionPattern Pattern { get; set; }
 
     /// <summary>Presentation-neutral phase plan for clients that render workflow progress.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("phasePlan")]
     public FusionPhasePlanStep[]? PhasePlan { get; set; }
@@ -3454,7 +3459,7 @@ public sealed partial class SessionFusionResolvedData
 }
 
 /// <summary>Experimental durable aggregate outcome of a HydraFusion turn.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionFusionCompletedData
 {
     /// <summary>Total cached input tokens reported across all phases.</summary>
@@ -3606,7 +3611,7 @@ public sealed partial class UserMessageData
     [JsonPropertyName("parentAgentTaskId")]
     public string? ParentAgentTaskId { get; set; }
 
-    /// <summary>Responses reasoning settings anchored before this model-facing message, for cache-stable history replay.</summary>
+    /// <summary>Provider reasoning settings anchored before this model-facing message for cache-stable replay; the historical responsesReasoning name is retained for compatibility.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("responsesReasoning")]
     public ResponsesReasoning? ResponsesReasoning { get; set; }
@@ -3750,7 +3755,7 @@ public sealed partial class AssistantIntentData
 }
 
 /// <summary>Experimental transient HydraFusion phase/model/role signal.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class AssistantFusionPhaseStartedData
 {
     /// <summary>Conversation scope in which the phase executes.</summary>
@@ -3783,7 +3788,7 @@ public sealed partial class AssistantFusionPhaseStartedData
 }
 
 /// <summary>Experimental content-safe activity signal for a running HydraFusion phase.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class AssistantFusionPhaseActivityData
 {
     /// <summary>Kind of real activity observed.</summary>
@@ -3826,7 +3831,7 @@ public sealed partial class AssistantFusionPhaseActivityData
 }
 
 /// <summary>Experimental durable HydraFusion phase output and lossless replay checkpoint.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class AssistantFusionPhaseCompletedData
 {
     /// <summary>Provider-normalized textual output produced by the phase.</summary>
@@ -3893,7 +3898,7 @@ public sealed partial class AssistantFusionPhaseCompletedData
 }
 
 /// <summary>Experimental durable typed HydraFusion phase failure and degradation transition.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class AssistantFusionPhaseFailedData
 {
     /// <summary>Conversation scope in which the phase executed.</summary>
@@ -4041,7 +4046,7 @@ public sealed partial class AssistantMessageData
     public long? ChunkIndex { get; set; }
 
     /// <summary>Provider-agnostic citations linking spans of this message's content to the sources that support them. Experimental; only populated when citation emission is enabled.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("citations")]
     public Citations? Citations { get; set; }
@@ -4061,7 +4066,7 @@ public sealed partial class AssistantMessageData
     public string? EncryptedContent { get; set; }
 
     /// <summary>Experimental HydraFusion source attribution for this ordinary authoritative assistant message.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("fusion")]
     public FusionAttribution? Fusion { get; set; }
@@ -4273,7 +4278,7 @@ public sealed partial class AssistantUsageData
     public AssistantUsageCopilotUsage? CopilotUsage { get; set; }
 
     /// <summary>Model multiplier cost for billing purposes.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("cost")]
     public double? Cost { get; set; }
@@ -4296,7 +4301,7 @@ public sealed partial class AssistantUsageData
     internal string? FrontierSource { get; set; }
 
     /// <summary>Experimental HydraFusion attribution for this concrete model call's usage.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("fusion")]
     public FusionAttribution? Fusion { get; set; }
@@ -4624,7 +4629,7 @@ public sealed partial class ModelCallFailureData
     public ModelCallFailureKind? FailureKind { get; set; }
 
     /// <summary>Experimental HydraFusion attribution for this failed concrete model call.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("fusion")]
     public FusionAttribution? Fusion { get; set; }
@@ -4745,7 +4750,7 @@ public sealed partial class ModelCallFinishedData
 public sealed partial class ModelCallStartData
 {
     /// <summary>Experimental HydraFusion attribution for this concrete model call.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("fusion")]
     public FusionAttribution? Fusion { get; set; }
@@ -4805,7 +4810,7 @@ public sealed partial class ToolExecutionStartData
     public bool? DisplayVerbatim { get; set; }
 
     /// <summary>Experimental HydraFusion attribution for this tool execution.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("fusion")]
     public FusionAttribution? Fusion { get; set; }
@@ -4916,7 +4921,7 @@ public sealed partial class ToolExecutionCompleteData
     public ToolExecutionCompleteError? Error { get; set; }
 
     /// <summary>Experimental HydraFusion attribution for this tool completion.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("fusion")]
     public FusionAttribution? Fusion { get; set; }
@@ -4932,7 +4937,7 @@ public sealed partial class ToolExecutionCompleteData
     public bool? IsUserRequested { get; set; }
 
     /// <summary>FIDES IFC label projected from tool ingress metadata (MCP `CallToolResult._meta` or synthesized built-in ingress labels). Persisted as `{ ifc: ... }` so the label survives session resume, including model-visible failure results. Experimental.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("mcpMeta")]
     public JsonElement? McpMeta { get; set; }
@@ -4967,7 +4972,7 @@ public sealed partial class ToolExecutionCompleteData
     public bool? Sandboxed { get; set; }
 
     /// <summary>Experimental shell completion facts captured before the persisted result contents are stripped.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("shellExecution")]
     public ToolExecutionCompleteShellExecution? ShellExecution { get; set; }
@@ -5598,7 +5603,7 @@ public sealed partial class SystemNotificationData
     [JsonPropertyName("kind")]
     public required SystemNotification Kind { get; set; }
 
-    /// <summary>Responses reasoning settings anchored before this model-facing message, for cache-stable history replay.</summary>
+    /// <summary>Provider reasoning settings anchored before this model-facing message for cache-stable replay; the historical responsesReasoning name is retained for compatibility.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("responsesReasoning")]
     public ResponsesReasoning? ResponsesReasoning { get; set; }
@@ -5655,7 +5660,7 @@ public sealed partial class PermissionCompletedData
     public TaskBlocker? Blocker { get; set; }
 
     /// <summary>Who decided this permission request. Absent on completions recorded before this field existed, which consumers must treat as "not a human decision" rather than assuming one. Authorization records are minted only for `human_response`; an assisted-approval verdict, a host policy, an unattended fallback, and a hook resolution all produce the same `result` a person does, so this is the only field that distinguishes them.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("decisionSource")]
     public PermissionDecisionSource? DecisionSource { get; set; }
@@ -5680,155 +5685,155 @@ public sealed partial class PermissionCompletedData
 }
 
 /// <summary>Records that a live authorization record from an earlier human decision in this session contained a permission proposal, so it ran without another prompt. This mints no authority: it accounts for one more effect against the prior grant, which is what lets a replayed session agree with the live one about how much of that grant is left.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class PermissionCarriedForwardData
 {
     /// <summary>Always `authorization_carry_forward`. Stated explicitly so a consumer reading this event cannot mistake it for a human, host-policy, or assisted-approval decision.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("decisionSource")]
     public required PermissionDecisionSource DecisionSource { get; set; }
 
     /// <summary>Identity of the prior authorization record that contained the proposal.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("recordId")]
     public required string RecordId { get; set; }
 
     /// <summary>Authorization edge minted for this admission. Not a prompt id: no prompt was raised, so no client should expect a request with this id.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("requestId")]
     public required string RequestId { get; set; }
 
     /// <summary>Tool call this admission authorizes. Its execution receipts the prior grant, which is how a single-effect approval is spent rather than carried forward again.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("toolCallId")]
     public required string ToolCallId { get; set; }
 }
 
 /// <summary>Freezes one blinded, verbatim-verified authorization claim the runtime minted from a human user message, so a resumed session re-establishes the same grant deterministically instead of re-running the extraction model. This mints no authority on its own: it records what a blinded proposer pointed at and the trusted discriminator the runtime established, and deterministic establishment runs on replay. Persisted so recorded authority survives compaction and process resume.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class PermissionMessageAuthorizationData
 {
     /// <summary>The kind of effect authorized, as an action-class identifier.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("actionClass")]
     public required string ActionClass { get; set; }
 
     /// <summary>Whether the claim granted or denied authority.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("polarity")]
     public required PermissionMessageAuthorizationPolarity Polarity { get; set; }
 
     /// <summary>Deterministic identity of the record, derived from the turn and span offsets so re-extracting the same span mints nothing new.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("recordId")]
     public required string RecordId { get; set; }
 
     /// <summary>End byte offset of the authorizing span within the turn.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("spanEnd")]
     public required long SpanEnd { get; set; }
 
     /// <summary>Start byte offset of the authorizing span within the turn.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("spanStart")]
     public required long SpanStart { get; set; }
 
     /// <summary>Concrete named targets that appear verbatim inside the span.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("targetMembers")]
     public string[]? TargetMembers { get; set; }
 
     /// <summary>The task the permission is scoped to, when the human named one.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("task")]
     public string? Task { get; set; }
 
     /// <summary>The human turn the quoted span was read from.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("turnIndex")]
     public required long TurnIndex { get; set; }
 
     /// <summary>The trusted version discriminator, when one exists. Exact shell-command grants carry the byte-identical commands grounded in the human span; world-derived classes carry a file object, remote tip, or runner only when that state was captured safely. An opaque object mirroring the runtime's adjacently-tagged resolution.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("world")]
     public JsonElement? World { get; set; }
 }
 
 /// <summary>Records that one human turn has been read by the blinded authorization proposer, whether or not it minted anything, so a resumed session does not re-run the extraction model on a turn the live session already read. Also records whether that pass activates ongoing extraction; contextual-assent-only passes do not, so unrelated future messages remain outside extraction.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class PermissionMessageAuthorizationReadData
 {
     /// <summary>Whether this read activates ongoing message-backed extraction. False for a contextual-assent-only pass while auto-approval is off, so unrelated future messages remain outside extraction.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("activatesExtraction")]
     public bool? ActivatesExtraction { get; set; }
 
     /// <summary>The human turn that was read by the proposer.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("turnIndex")]
     public required long TurnIndex { get; set; }
 }
 
 /// <summary>Records that message-backed authorization could not safely represent one human turn before compaction. The runtime may compact the original message after this marker is durable, but message-derived carry-forward and assisted auto-approval remain disabled for the rest of the session so subsequent commands continue through the ordinary permission prompt.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class PermissionMessageAuthorizationDegradedData
 {
     /// <summary>The human turn that could not be represented safely.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("turnIndex")]
     public required long TurnIndex { get; set; }
 }
 
 /// <summary>Records that deterministic text recognition found likely assent in the human turn immediately following a root Autopilot permission request that was blocked because no interactive response was available. This event grants no authority; its model-facing projection only suggests retrying the unchanged operation.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class PermissionAssentDetectedData
 {
     /// <summary>Permission request the likely assent may refer to. The runtime derives this from the preceding durable blocker; the human message and extraction model do not choose it.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("requestId")]
     public required string RequestId { get; set; }
 
     /// <summary>Human turn whose text triggered the deterministic assent recognizer.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("turnIndex")]
     public required long TurnIndex { get; set; }
 }
 
 /// <summary>Freezes a blinded contextual authorization proposal whose verbatim human span was deterministically bound to the immediately preceding blocked permission request. The event carries no action fields; replay re-derives the exact action from the earlier permission request and mints a one-shot message grant only when the binding and span still verify.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class PermissionContextualAuthorizationData
 {
     /// <summary>Whether the contextual human span granted or denied authority.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("polarity")]
     public required PermissionMessageAuthorizationPolarity Polarity { get; set; }
 
     /// <summary>Deterministic identity of the contextual message grant.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("recordId")]
     public required string RecordId { get; set; }
 
     /// <summary>Original blocked permission request selected by deterministic event ordering, never by the extraction model.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("requestId")]
     public required string RequestId { get; set; }
 
     /// <summary>End byte offset of the contextual decision span within the turn.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("spanEnd")]
     public required long SpanEnd { get; set; }
 
     /// <summary>Start byte offset of the contextual decision span within the turn.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("spanStart")]
     public required long SpanStart { get; set; }
 
     /// <summary>Human turn containing the contextual decision.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("turnIndex")]
     public required long TurnIndex { get; set; }
 }
@@ -6072,7 +6077,7 @@ public sealed partial class SessionCustomNotificationData
 }
 
 /// <summary>Ordered output and terminal state for a transient query that does not modify conversation history.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class UiEphemeralQueryData
 {
     /// <summary>Full response text, present for the `completed` phase.</summary>
@@ -6251,7 +6256,7 @@ public sealed partial class SessionLimitsExhaustedCompletedData
 }
 
 /// <summary>Auto Intent resolution: the concrete model the session settled on for the first prompt of an auto-mode session, and why. Lets SDK clients render the chosen model and the full reason it was picked. The core selection fields (chosenModel/reasoningBucket/categoryScores) are stable; the routing-analytics fields (predictedLabel/confidence/candidateModels) mirror the upstream intent service and may evolve, hence the event's experimental stability.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionAutoModeResolvedData
 {
     /// <summary>Models offered to the router for this resolution.</summary>
@@ -6330,7 +6335,7 @@ public sealed partial class SessionAutoModeResolvedData
 }
 
 /// <summary>Enterprise managed-settings resolution: the effective managed settings the session applied and which channels contributed, so SDK clients can show users what is enterprise-managed. Fires whenever managed policy is (re)applied — at session start, on resume, and on account switch. This is an ephemeral live snapshot (delivered to subscribers but not persisted to the session event log), because at session start it resolves before `session.start` is emitted. Device values take precedence over server values, then the policy helper, per ordinary key, while permissions compose restrictively across device, server, policy-helper, and SDK-client layers. The account-scoped `getManagedSettings()` API does not include session-local client injection. Marked experimental while the managed-settings surface stabilizes.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionManagedSettingsResolvedData
 {
     /// <summary>Whether enterprise policy disables bypass-permissions ("yolo") mode for this session. Deny-wins across layers, and forced on when `failClosed` is true.</summary>
@@ -6384,7 +6389,7 @@ public sealed partial class SessionManagedSettingsResolvedData
 }
 
 /// <summary>Runtime enforcement of enterprise managed settings: fires when the session blocks or caps a runtime action because enterprise policy governs it, so SDK clients can explain *why* an action was governed. Unlike `session.managed_settings_resolved` (which reports *what* is managed), this reports a concrete governed action — e.g. a user or host tried to turn on a bypass-permissions escalation while policy disables it. Emitted live (not persisted to the session event log) on user/host-initiated attempts only, never for silent policy application. Marked experimental while the managed-settings surface stabilizes.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionManagedSettingsEnforcedData
 {
     /// <summary>The category of runtime action that managed policy governed.</summary>
@@ -6497,7 +6502,7 @@ public sealed partial class SessionBackgroundTasksChangedData
 }
 
 /// <summary>Ephemeral invalidation signal for a changed factory run.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class FactoryRunUpdatedData
 {
     /// <summary>Monotonic revision now available for the run.</summary>
@@ -6510,7 +6515,7 @@ public sealed partial class FactoryRunUpdatedData
 }
 
 /// <summary>Ephemeral signal that a factory run attempt began executing.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class FactoryRunStartedData
 {
     /// <summary>Attempt number this start committed; a resumed run increments it.</summary>
@@ -6527,7 +6532,7 @@ public sealed partial class FactoryRunStartedData
 }
 
 /// <summary>Ephemeral signal that a factory run reached a terminal status.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class FactoryRunSettledData
 {
     /// <summary>AI credits this run consumed, in nano-AIU.</summary>
@@ -6654,7 +6659,7 @@ public sealed partial class SessionExtensionsLoadedData
 }
 
 /// <summary>Payload of `session.canvas.opened` with canvas instance and provider IDs plus optional icon, title, status, URL, and input.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionCanvasOpenedData
 {
     /// <summary>Provider-local canvas identifier.</summary>
@@ -6701,7 +6706,7 @@ public sealed partial class SessionCanvasOpenedData
 }
 
 /// <summary>Payload of `session.canvas.registry_changed` listing the canvas declarations currently available.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionCanvasRegistryChangedData
 {
     /// <summary>Canvas declarations currently available.</summary>
@@ -6710,7 +6715,7 @@ public sealed partial class SessionCanvasRegistryChangedData
 }
 
 /// <summary>Payload of `session.canvas.closed` with the closed canvas instance ID, provider ID, and canvas ID.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionCanvasClosedData
 {
     /// <summary>Provider-local canvas identifier.</summary>
@@ -6729,7 +6734,7 @@ public sealed partial class SessionCanvasClosedData
 }
 
 /// <summary>Transient signal that an open canvas instance's provider has dropped (for example the extension is reloading mid-session). The host should keep the panel mounted and surface a reconnecting affordance rather than tearing it down; a subsequent `session.canvas.opened` for the same instanceId clears the affordance once the provider reconnects with a fresh url. Ephemeral and never persisted, so it is never replayed on cold resume.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionCanvasUnavailableData
 {
     /// <summary>Provider-local canvas identifier.</summary>
@@ -6748,7 +6753,7 @@ public sealed partial class SessionCanvasUnavailableData
 }
 
 /// <summary>Durable record that a canvas instance is open, used to restore open canvases on cold session resume. Intentionally omits the transient url and availability.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionCanvasRecordedData
 {
     /// <summary>Provider-local canvas identifier.</summary>
@@ -6777,7 +6782,7 @@ public sealed partial class SessionCanvasRecordedData
 }
 
 /// <summary>Durable record that a canvas instance was closed, superseding a prior instance_recorded during resume replay.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class SessionCanvasRemovedData
 {
     /// <summary>Provider-local canvas identifier.</summary>
@@ -7050,13 +7055,13 @@ public sealed partial class HandoffRepository
 public sealed partial class ShutdownModelMetricRequests
 {
     /// <summary>Cumulative cost multiplier for requests to this model.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("cost")]
     public double? Cost { get; set; }
 
     /// <summary>Total number of API requests made to this model.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("count")]
     public long? Count { get; set; }
@@ -7111,7 +7116,7 @@ public sealed partial class ShutdownModelMetric
     public IDictionary<string, ShutdownModelMetricTokenDetail>? TokenDetails { get; set; }
 
     /// <summary>Accumulated nano-AI units cost for this model.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("totalNanoAiu")]
     public double? TotalNanoAiu { get; set; }
@@ -7282,7 +7287,7 @@ public sealed partial class CompactionCompleteCompactionTokensUsed
     public long? OutputTokens { get; set; }
 }
 
-/// <summary>Original request-level and effective conversation reasoning effort for a Responses history boundary.</summary>
+/// <summary>Original request-level and effective conversation reasoning effort for a provider history boundary; the historical type name is retained for compatibility.</summary>
 /// <remarks>Nested data type for <c>ResponsesReasoning</c>.</remarks>
 public sealed partial class ResponsesReasoning
 {
@@ -7367,7 +7372,7 @@ public sealed partial class PermissionRecoveryData
 
 /// <summary>Structured reason that the task cannot continue without intervention.</summary>
 /// <remarks>Nested data type for <c>TaskBlocker</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class TaskBlocker
 {
     /// <summary>Category of intervention that blocked the task.</summary>
@@ -7425,7 +7430,7 @@ public sealed partial class CompletionReceiptFinalTool
 
 /// <summary>Durable server recommendation for subsequent HydraFusion turns.</summary>
 /// <remarks>Nested data type for <c>FusionFollowUpRecommendation</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class FusionFollowUpRecommendation
 {
     /// <summary>Recommended routing action for the next compaction turn.</summary>
@@ -7439,7 +7444,7 @@ public sealed partial class FusionFollowUpRecommendation
 
 /// <summary>Presentation-neutral phase planned for a HydraFusion turn.</summary>
 /// <remarks>Nested data type for <c>FusionPhasePlanStep</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class FusionPhasePlanStep
 {
     /// <summary>Whether the phase executes only when an earlier phase requests it.</summary>
@@ -7461,7 +7466,7 @@ public sealed partial class FusionPhasePlanStep
 
 /// <summary>Validated HydraFusion routing capability scores.</summary>
 /// <remarks>Nested data type for <c>FusionScores</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class FusionScores
 {
     /// <summary>Code-generation capability score returned by the authenticated router.</summary>
@@ -8033,7 +8038,7 @@ public partial class Attachment
 
 /// <summary>Internal durable terminal request staged by a HydraFusion phase until an idempotent final commit selects it.</summary>
 /// <remarks>Nested data type for <c>FusionStagedTerminal</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 internal sealed partial class FusionStagedTerminal
 {
     /// <summary>Gets or sets the <c>arguments</c> value.</summary>
@@ -8059,7 +8064,7 @@ internal sealed partial class FusionStagedTerminal
 
 /// <summary>Aggregate concrete-model usage for one HydraFusion phase.</summary>
 /// <remarks>Nested data type for <c>FusionPhaseUsage</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class FusionPhaseUsage
 {
     /// <summary>Total cached input tokens reported for the phase.</summary>
@@ -8090,7 +8095,7 @@ public sealed partial class FusionPhaseUsage
 
 /// <summary>A source that backs one or more cited spans in the assistant's response.</summary>
 /// <remarks>Nested data type for <c>CitationSource</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class CitationSource
 {
     /// <summary>Stable, turn-scoped identifier for this source, referenced by CitationReference.sourceId.</summary>
@@ -8119,7 +8124,7 @@ public sealed partial class CitationSource
 
 /// <summary>A character range within the source's text content.</summary>
 /// <remarks>The <c>char</c> variant of <see cref="CitationLocation"/>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class CitationLocationChar : CitationLocation
 {
     /// <inheritdoc />
@@ -8137,7 +8142,7 @@ public sealed partial class CitationLocationChar : CitationLocation
 
 /// <summary>A page range within a paginated source document.</summary>
 /// <remarks>The <c>page</c> variant of <see cref="CitationLocation"/>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class CitationLocationPage : CitationLocation
 {
     /// <inheritdoc />
@@ -8155,7 +8160,7 @@ public sealed partial class CitationLocationPage : CitationLocation
 
 /// <summary>A content-block range within a structured source document.</summary>
 /// <remarks>The <c>block</c> variant of <see cref="CitationLocation"/>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class CitationLocationBlock : CitationLocation
 {
     /// <inheritdoc />
@@ -8173,7 +8178,7 @@ public sealed partial class CitationLocationBlock : CitationLocation
 
 /// <summary>Location within a cited source (character, page, or content-block range) that supports a span.</summary>
 /// <remarks>Polymorphic base type discriminated by <c>type</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 [JsonPolymorphic(
     TypeDiscriminatorPropertyName = "type",
     UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FallBackToBaseType)]
@@ -8190,7 +8195,7 @@ public partial class CitationLocation
 
 /// <summary>A single citation occurrence linking a span of generated text to a supporting source.</summary>
 /// <remarks>Nested data type for <c>CitationReference</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class CitationReference
 {
     /// <summary>The exact text from the source that supports the cited span, when provided by the model.</summary>
@@ -8215,7 +8220,7 @@ public sealed partial class CitationReference
 
 /// <summary>A contiguous span of generated assistant text and the source references that support it.</summary>
 /// <remarks>Nested data type for <c>CitationSpan</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class CitationSpan
 {
     /// <summary>End offset of the cited span within the final assistant message content (UTF-16 code units, zero-based, exclusive).</summary>
@@ -8233,7 +8238,7 @@ public sealed partial class CitationSpan
 
 /// <summary>Provider-agnostic citations linking spans of the assistant's response to their supporting sources.</summary>
 /// <remarks>Nested data type for <c>Citations</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class Citations
 {
     /// <summary>Deduplicated set of sources referenced by the citation spans.</summary>
@@ -8247,7 +8252,7 @@ public sealed partial class Citations
 
 /// <summary>Experimental attribution linking an ordinary event to the HydraFusion turn, phase, and concrete source that produced it.</summary>
 /// <remarks>Nested data type for <c>FusionAttribution</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class FusionAttribution
 {
     /// <summary>Idempotency identifier for the authoritative commit, when the event belongs to the selected output.</summary>
@@ -8263,6 +8268,11 @@ public sealed partial class FusionAttribution
     /// <summary>Stable identifier for the HydraFusion turn that produced the event.</summary>
     [JsonPropertyName("fusionId")]
     public required string FusionId { get; set; }
+
+    /// <summary>Whether this model request consumed a user steering message rather than only internal Fusion work.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("hasUserSteering")]
+    public bool? HasUserSteering { get; set; }
 
     /// <summary>HydraFusion orchestration pattern selected for the turn.</summary>
     [JsonPropertyName("pattern")]
@@ -8304,7 +8314,7 @@ public sealed partial class FusionAttribution
 
 /// <summary>Neutral provider-tagged reasoning content blocks preserved verbatim for round-tripping.</summary>
 /// <remarks>Nested data type for <c>AssistantMessageReasoningBlocks</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class AssistantMessageReasoningBlocks
 {
     /// <summary>Provider-native reasoning items or content blocks preserved verbatim, in order. A single response can carry several, and provider signatures or identifiers may depend on their exact content and ordering.</summary>
@@ -8319,7 +8329,7 @@ public sealed partial class AssistantMessageReasoningBlocks
 
 /// <summary>Neutral provider-tagged server-side tool-use payload (tool search, advisor) for verbatim round-tripping.</summary>
 /// <remarks>Nested data type for <c>AssistantMessageServerTools</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class AssistantMessageServerTools
 {
     /// <summary>Advisor model identifier associated with the server-tool payload.</summary>
@@ -8557,7 +8567,7 @@ public sealed partial class ModelCallFailureRequestFingerprint
 public sealed partial class ToolExecutionStartShellToolInfo
 {
     /// <summary>The command with a redundant leading `cd` into the working directory removed, present only when there was one to remove. Computed with the same routine the shell driver applies before spawning, so a surface that renders this shows the text that actually runs. Consumers that display it should keep the original tool arguments available on demand.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("displayCommand")]
     public string? DisplayCommand { get; set; }
@@ -8664,7 +8674,7 @@ public sealed partial class PersistedBinaryImage
 
 /// <summary>A binary result whose data was omitted from persistence due to the inline size limit.</summary>
 /// <remarks>Nested data type for <c>OmittedBinaryResult</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class OmittedBinaryResult
 {
     /// <summary>Decoded byte length of the omitted binary data.</summary>
@@ -8696,7 +8706,7 @@ public sealed partial class OmittedBinaryResult
 
 /// <summary>A reference to binary data persisted once on a session.binary_asset event and shared by id.</summary>
 /// <remarks>Nested data type for <c>BinaryAssetReference</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class BinaryAssetReference
 {
     /// <summary>Content-addressed id of the session.binary_asset event that holds this binary's bytes (e.g. "sha256:...").</summary>
@@ -8829,7 +8839,7 @@ public sealed partial class PersistedBinaryResult
 
 /// <summary>A source supplied by a tool that should be made available to the model as citable content.</summary>
 /// <remarks>Nested data type for <c>CitableSource</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class CitableSource
 {
     /// <summary>The source text made available to the model as citable content.</summary>
@@ -9325,13 +9335,13 @@ public sealed partial class ToolExecutionCompleteUIResource
 public sealed partial class ToolExecutionCompleteResult
 {
     /// <summary>Model-facing binary results (base64 inline or size-omitted markers) sent to the LLM for this tool call.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("binaryResultsForLlm")]
     public PersistedBinaryResult[]? BinaryResultsForLlm { get; set; }
 
     /// <summary>Provider-neutral source material this tool makes available to the model as citable content. Persisted so it survives session resume. Experimental.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("citableSources")]
     public CitableSource[]? CitableSources { get; set; }
@@ -9351,7 +9361,7 @@ public sealed partial class ToolExecutionCompleteResult
     public string? DetailedContent { get; set; }
 
     /// <summary>FIDES IFC label projected from tool ingress metadata (MCP `CallToolResult._meta` or synthesized built-in ingress labels) — persisted as `{ ifc: ... }` (only the `ifc` key, not the whole `_meta`). Persisted so the FIDES IFC label survives session resume: the engine rehydrates accumulated taint by replaying these on load. Populated for ingress sources when FIDES IFC is on. Experimental.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("mcpMeta")]
     public JsonElement? McpMeta { get; set; }
@@ -9369,7 +9379,7 @@ public sealed partial class ToolExecutionCompleteResult
 
 /// <summary>Experimental shell completion facts retained independently of the full tool result.</summary>
 /// <remarks>Nested data type for <c>ToolExecutionCompleteShellExecution</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class ToolExecutionCompleteShellExecution
 {
     /// <summary>Process exit code reported by the shell driver.</summary>
@@ -10283,13 +10293,13 @@ public sealed partial class PermissionRequestShell : PermissionRequest
     public bool? RequestSandboxPermissive { get; set; }
 
     /// <summary>Runtime-resolved canonical object each possiblePaths entry names, keyed by the requested spelling, used for authorization identity checks. Internal and experimental; clients should continue to display possiblePaths.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("resolvedPaths")]
     public IDictionary<string, string>? ResolvedPaths { get; set; }
 
     /// <summary>Runtime-resolved canonical working directory the command runs in, used for authorization identity checks. Internal and experimental; clients should not display it.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("resolvedWorkingDirectory")]
     public string? ResolvedWorkingDirectory { get; set; }
@@ -10354,7 +10364,7 @@ public sealed partial class PermissionRequestWrite : PermissionRequest
     public string? RequestSandboxBypassReason { get; set; }
 
     /// <summary>Runtime-resolved canonical path used for authorization identity checks. Internal and experimental; clients should continue to display fileName.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("resolvedPath")]
     public string? ResolvedPath { get; set; }
@@ -10401,7 +10411,7 @@ public sealed partial class PermissionRequestRead : PermissionRequest
     public string? RequestSandboxBypassReason { get; set; }
 
     /// <summary>Runtime-resolved canonical path used for authorization identity checks. Internal and experimental; clients should continue to display path.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("resolvedPath")]
     public string? ResolvedPath { get; set; }
@@ -10426,7 +10436,7 @@ public sealed partial class PermissionRequestMcp : PermissionRequest
     public JsonElement? Args { get; set; }
 
     /// <summary>Advisory runtime permission recommendation. The SDK host remains responsible for deciding the request and may reject it.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("permissionRecommendation")]
     public PermissionRecommendation? PermissionRecommendation { get; set; }
@@ -10523,7 +10533,7 @@ public sealed partial class PermissionApprovalEvaluation
 
 /// <summary>Assisted-approval judge information attached to a permission request. Present only in assisted mode; its absence means the judge did not evaluate the request. The `recommendation` conveys the judge's disposition for this request.</summary>
 /// <remarks>Nested data type for <c>PermissionAssistedApproval</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class PermissionAssistedApproval
 {
     /// <summary>Runtime reason and judge-call metadata. Absent on older events; missing metadata means unknown, not that the judge was skipped.</summary>
@@ -10565,7 +10575,7 @@ public sealed partial class PermissionRequestMemory : PermissionRequest
     public PermissionRequestMemoryAction? Action { get; set; }
 
     /// <summary>Assisted-approval judge information for this request; present only in assisted mode.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("assistedApproval")]
     public PermissionAssistedApproval? AssistedApproval { get; set; }
@@ -10868,7 +10878,7 @@ public sealed partial class PermissionPromptRequestCommands : PermissionPromptRe
     public override string Kind => "commands";
 
     /// <summary>Assisted-approval judge information for this request; present only in assisted mode.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("assistedApproval")]
     public PermissionAssistedApproval? AssistedApproval { get; set; }
@@ -10929,7 +10939,7 @@ public sealed partial class PermissionPromptRequestWrite : PermissionPromptReque
     public override string Kind => "write";
 
     /// <summary>Assisted-approval judge information for this request; present only in assisted mode.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("assistedApproval")]
     public PermissionAssistedApproval? AssistedApproval { get; set; }
@@ -10961,7 +10971,7 @@ public sealed partial class PermissionPromptRequestWrite : PermissionPromptReque
     public string? NewFileContents { get; set; }
 
     /// <summary>Runtime-resolved canonical path used for authorization identity checks. Internal and experimental; clients should continue to display fileName.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("resolvedPath")]
     public string? ResolvedPath { get; set; }
@@ -10981,7 +10991,7 @@ public sealed partial class PermissionPromptRequestRead : PermissionPromptReques
     public override string Kind => "read";
 
     /// <summary>Assisted-approval judge information for this request; present only in assisted mode.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("assistedApproval")]
     public PermissionAssistedApproval? AssistedApproval { get; set; }
@@ -11000,7 +11010,7 @@ public sealed partial class PermissionPromptRequestRead : PermissionPromptReques
     public required string Path { get; set; }
 
     /// <summary>Runtime-resolved canonical path used for authorization identity checks. Internal and experimental; clients should continue to display path.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("resolvedPath")]
     public string? ResolvedPath { get; set; }
@@ -11025,7 +11035,7 @@ public sealed partial class PermissionPromptRequestMcp : PermissionPromptRequest
     public JsonElement? Args { get; set; }
 
     /// <summary>Assisted-approval judge information for this request; present only in assisted mode.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("assistedApproval")]
     public PermissionAssistedApproval? AssistedApproval { get; set; }
@@ -11036,7 +11046,7 @@ public sealed partial class PermissionPromptRequestMcp : PermissionPromptRequest
     public bool? CanOfferServerWideApproval { get; set; }
 
     /// <summary>Advisory runtime permission recommendation. The host remains responsible for deciding the request and may reject it.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("permissionRecommendation")]
     public PermissionRecommendation? PermissionRecommendation { get; set; }
@@ -11068,7 +11078,7 @@ public sealed partial class PermissionPromptRequestUrl : PermissionPromptRequest
     public override string Kind => "url";
 
     /// <summary>Assisted-approval judge information for this request; present only in assisted mode.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("assistedApproval")]
     public PermissionAssistedApproval? AssistedApproval { get; set; }
@@ -11121,7 +11131,7 @@ public sealed partial class PermissionPromptRequestMemory : PermissionPromptRequ
     public PermissionRequestMemoryAction? Action { get; set; }
 
     /// <summary>Assisted-approval judge information for this request; present only in assisted mode.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("assistedApproval")]
     public PermissionAssistedApproval? AssistedApproval { get; set; }
@@ -11170,7 +11180,7 @@ public sealed partial class PermissionPromptRequestCustomTool : PermissionPrompt
     public JsonElement? Args { get; set; }
 
     /// <summary>Assisted-approval judge information for this request; present only in assisted mode.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("assistedApproval")]
     public PermissionAssistedApproval? AssistedApproval { get; set; }
@@ -11202,7 +11212,7 @@ public sealed partial class PermissionPromptRequestPath : PermissionPromptReques
     public required PermissionPromptRequestPathAccessKind AccessKind { get; set; }
 
     /// <summary>Assisted-approval judge information for this request; present only in assisted mode.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("assistedApproval")]
     public PermissionAssistedApproval? AssistedApproval { get; set; }
@@ -11226,7 +11236,7 @@ public sealed partial class PermissionPromptRequestHook : PermissionPromptReques
     public override string Kind => "hook";
 
     /// <summary>Assisted-approval judge information for this request; present only in assisted mode.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("assistedApproval")]
     public PermissionAssistedApproval? AssistedApproval { get; set; }
@@ -11260,7 +11270,7 @@ public sealed partial class PermissionPromptRequestExtensionManagement : Permiss
     public override string Kind => "extension-management";
 
     /// <summary>Assisted-approval judge information for this request; present only in assisted mode.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("assistedApproval")]
     public PermissionAssistedApproval? AssistedApproval { get; set; }
@@ -11293,7 +11303,7 @@ public sealed partial class PermissionPromptRequestFactory : PermissionPromptReq
     public required string ApprovalKey { get; set; }
 
     /// <summary>Assisted-approval judge information for this request; present only in assisted mode.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("assistedApproval")]
     public PermissionAssistedApproval? AssistedApproval { get; set; }
@@ -11378,7 +11388,7 @@ public sealed partial class PermissionPromptRequestExtensionPermissionAccess : P
     public override string Kind => "extension-permission-access";
 
     /// <summary>Assisted-approval judge information for this request; present only in assisted mode.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("assistedApproval")]
     public PermissionAssistedApproval? AssistedApproval { get; set; }
@@ -11406,7 +11416,7 @@ public sealed partial class PermissionPromptRequestExtensionEnvAccess : Permissi
     public override string Kind => "extension-env-access";
 
     /// <summary>Assisted-approval judge information for this request; present only in assisted mode.</summary>
-    [Experimental(Diagnostics.Experimental)]
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("assistedApproval")]
     public PermissionAssistedApproval? AssistedApproval { get; set; }
@@ -11853,6 +11863,11 @@ public sealed partial class McpOauthRequiredStaticClientConfig
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("publicClient")]
     public bool? PublicClient { get; set; }
+
+    /// <summary>Configured OAuth scope string used when the server challenge omits scope or provides an empty scope.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("scope")]
+    public string? Scope { get; set; }
 }
 
 /// <summary>OAuth WWW-Authenticate parameters parsed from an MCP auth challenge.</summary>
@@ -12101,7 +12116,7 @@ public sealed partial class ExtensionsLoadedExtension
 
 /// <summary>A single action within a canvas declaration, with its name, optional description, and optional input schema.</summary>
 /// <remarks>Nested data type for <c>CanvasRegistryChangedCanvasAction</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class CanvasRegistryChangedCanvasAction
 {
     /// <summary>Action description.</summary>
@@ -12121,7 +12136,7 @@ public sealed partial class CanvasRegistryChangedCanvasAction
 
 /// <summary>A single canvas declaration in `session.canvas.registry_changed`, including provider IDs, display metadata, input schema, and actions.</summary>
 /// <remarks>Nested data type for <c>CanvasRegistryChangedCanvas</c>.</remarks>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed partial class CanvasRegistryChangedCanvas
 {
     /// <summary>Actions the agent or host may invoke.</summary>
@@ -13471,7 +13486,7 @@ public readonly struct AutoTierSwitchFailureReason : IEquatable<AutoTierSwitchFa
 }
 
 /// <summary>Permission mode for the session.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 [JsonConverter(typeof(Converter))]
 [DebuggerDisplay("{Value,nq}")]
 public readonly struct PermissionMode : IEquatable<PermissionMode>
@@ -14526,7 +14541,7 @@ public readonly struct CompletionReceiptStopReason : IEquatable<CompletionReceip
 }
 
 /// <summary>Kind of turn for which HydraFusion routing is running.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 [JsonConverter(typeof(Converter))]
 [DebuggerDisplay("{Value,nq}")]
 public readonly struct FusionTurnKind : IEquatable<FusionTurnKind>
@@ -14588,7 +14603,7 @@ public readonly struct FusionTurnKind : IEquatable<FusionTurnKind>
 }
 
 /// <summary>Server-recommended routing behavior for a later HydraFusion turn.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 [JsonConverter(typeof(Converter))]
 [DebuggerDisplay("{Value,nq}")]
 public readonly struct FusionFollowUpAction : IEquatable<FusionFollowUpAction>
@@ -14650,7 +14665,7 @@ public readonly struct FusionFollowUpAction : IEquatable<FusionFollowUpAction>
 }
 
 /// <summary>Validated HydraFusion execution pattern.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 [JsonConverter(typeof(Converter))]
 [DebuggerDisplay("{Value,nq}")]
 public readonly struct FusionPattern : IEquatable<FusionPattern>
@@ -14715,7 +14730,7 @@ public readonly struct FusionPattern : IEquatable<FusionPattern>
 }
 
 /// <summary>HydraFusion phase kind.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 [JsonConverter(typeof(Converter))]
 [DebuggerDisplay("{Value,nq}")]
 public readonly struct FusionPhaseKind : IEquatable<FusionPhaseKind>
@@ -14792,7 +14807,7 @@ public readonly struct FusionPhaseKind : IEquatable<FusionPhaseKind>
 }
 
 /// <summary>Conversation scope in which a HydraFusion phase executes.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 [JsonConverter(typeof(Converter))]
 [DebuggerDisplay("{Value,nq}")]
 public readonly struct FusionConversationScope : IEquatable<FusionConversationScope>
@@ -15299,7 +15314,7 @@ public readonly struct ModelCallFailureTransport : IEquatable<ModelCallFailureTr
 }
 
 /// <summary>Content-safe activity observed while a HydraFusion phase is running.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 [JsonConverter(typeof(Converter))]
 [DebuggerDisplay("{Value,nq}")]
 public readonly struct FusionPhaseActivityKind : IEquatable<FusionPhaseActivityKind>
@@ -15364,7 +15379,7 @@ public readonly struct FusionPhaseActivityKind : IEquatable<FusionPhaseActivityK
 }
 
 /// <summary>How a durable phase checkpoint contributes its exact message to canonical root history.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 [JsonConverter(typeof(Converter))]
 [DebuggerDisplay("{Value,nq}")]
 public readonly struct FusionProjectionMode : IEquatable<FusionProjectionMode>
@@ -15429,7 +15444,7 @@ public readonly struct FusionProjectionMode : IEquatable<FusionProjectionMode>
 }
 
 /// <summary>Durable outcome status of a HydraFusion phase.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 [JsonConverter(typeof(Converter))]
 [DebuggerDisplay("{Value,nq}")]
 public readonly struct FusionPhaseStatus : IEquatable<FusionPhaseStatus>
@@ -15555,7 +15570,7 @@ public readonly struct AssistantMessageToolRequestType : IEquatable<AssistantMes
 }
 
 /// <summary>The system that produced a citation.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 [JsonConverter(typeof(Converter))]
 [DebuggerDisplay("{Value,nq}")]
 public readonly struct CitationProvider : IEquatable<CitationProvider>
@@ -17929,7 +17944,7 @@ public readonly struct SystemNotificationFactoryCompletedStatus : IEquatable<Sys
 }
 
 /// <summary>Advisory recommendation the runtime attaches to a permission request whose origin it can vouch for by construction. Unlike the auto-approval judge this does not depend on auto mode and does not evaluate what the tool call does; its absence simply means the runtime has no opinion and the request follows the host's normal approval flow.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 [JsonConverter(typeof(Converter))]
 [DebuggerDisplay("{Value,nq}")]
 public readonly struct PermissionRecommendation : IEquatable<PermissionRecommendation>
@@ -18325,7 +18340,7 @@ public readonly struct PermissionApprovalEvaluationReasonCode : IEquatable<Permi
 }
 
 /// <summary>Why the assisted-approval judge produced no usable recommendation. Present only alongside an `error` recommendation, where the human-readable reason is a fixed string and therefore cannot distinguish these cases. Intended to make a judge failure reportable by a consumer that has no access to the host's logs.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 [JsonConverter(typeof(Converter))]
 [DebuggerDisplay("{Value,nq}")]
 public readonly struct AssistedApprovalJudgeFailureReason : IEquatable<AssistedApprovalJudgeFailureReason>
@@ -18396,7 +18411,7 @@ public readonly struct AssistedApprovalJudgeFailureReason : IEquatable<AssistedA
 }
 
 /// <summary>Outcome of the assisted-approval safety judge for a permission request. Present only in assisted mode; its absence means the judge did not evaluate the request.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 [JsonConverter(typeof(Converter))]
 [DebuggerDisplay("{Value,nq}")]
 public readonly struct AssistedApprovalRecommendation : IEquatable<AssistedApprovalRecommendation>
@@ -18781,7 +18796,7 @@ public readonly struct PermissionDecisionSource : IEquatable<PermissionDecisionS
 }
 
 /// <summary>Which direction a message-backed authorization claim moves authority in.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 [JsonConverter(typeof(Converter))]
 [DebuggerDisplay("{Value,nq}")]
 public readonly struct PermissionMessageAuthorizationPolarity : IEquatable<PermissionMessageAuthorizationPolarity>
@@ -19227,7 +19242,7 @@ public readonly struct McpHeadersRefreshCompletedOutcome : IEquatable<McpHeaders
 }
 
 /// <summary>Lifecycle phase for a Rust-owned ephemeral query stream.</summary>
-[Experimental(Diagnostics.Experimental)]
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 [JsonConverter(typeof(Converter))]
 [DebuggerDisplay("{Value,nq}")]
 public readonly struct UIEphemeralQueryPhase : IEquatable<UIEphemeralQueryPhase>
