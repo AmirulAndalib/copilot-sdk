@@ -540,6 +540,9 @@ pub struct Session {
     open_canvases: Arc<parking_lot::RwLock<Vec<OpenCanvasInstance>>>,
     /// Broadcast channel for runtime event subscribers — see [`Session::subscribe`].
     event_tx: tokio::sync::broadcast::Sender<SessionEvent>,
+    /// Resume-only queue retained until the first post-resume subscriber
+    /// catches up and switches to bounded live delivery.
+    resume_bootstrap: Option<Arc<crate::subscription::ResumeBootstrap>>,
     github_token_registration:
         ParkingLotMutex<Option<crate::github_token::GitHubTokenRegistration>>,
     /// Identity of this session's router registration.
@@ -631,8 +634,24 @@ impl Session {
     /// loop or any combinator from `tokio_stream::StreamExt` /
     /// `futures::StreamExt`.
     ///
-    /// Each subscriber maintains its own queue. If a consumer cannot keep
-    /// up, the oldest events are dropped and `recv` returns
+    /// If resume started with no active [`PreparedSession`] subscriber, the
+    /// first subscription receives all retained routed startup events, durable
+    /// and ephemeral, in order before live delivery. Ownership is assigned
+    /// synchronously by the first `subscribe()` call, not by the first poll.
+    /// Later subscribers receive newly dispatched live events immediately,
+    /// even while the first subscriber is catching up.
+    ///
+    /// Bootstrap retention is unbounded until its owner catches up. Callers
+    /// that never subscribe or cannot catch up can retain arbitrarily many
+    /// events, so subscribe and drain promptly. Dropping the owner discards
+    /// its unread backlog; stopping the event loop releases an unclaimed
+    /// backlog. A claimed backlog can still be drained after shutdown.
+    /// This guarantee covers events routed to this session, not events lost
+    /// to overflow in the bounded client-global notification router.
+    ///
+    /// After the atomic bootstrap handoff, each subscriber maintains its own
+    /// finite queue. If a consumer cannot keep up, the oldest live events are
+    /// dropped and `recv` returns
     /// [`RecvErrorKind::Lagged`](crate::subscription::RecvErrorKind::Lagged)
     /// reporting the count of skipped events. Slow consumers do not block
     /// the session's event loop.
@@ -650,7 +669,10 @@ impl Session {
     /// # }
     /// ```
     pub fn subscribe(&self) -> crate::subscription::EventSubscription {
-        crate::subscription::EventSubscription::new(self.event_tx.subscribe())
+        match &self.resume_bootstrap {
+            Some(bootstrap) => bootstrap.subscribe(&self.event_tx),
+            None => crate::subscription::EventSubscription::new(self.event_tx.subscribe()),
+        }
     }
 
     /// The underlying Client (for advanced use cases).
@@ -908,7 +930,8 @@ impl Session {
 
     async fn send_and_wait_structured(&self, opts: MessageOptions) -> Result<SessionEvent, Error> {
         let duration = opts.wait_timeout.unwrap_or(Duration::from_secs(60));
-        let mut events = self.subscribe();
+        // Internal request observers must not claim the caller's resume backlog.
+        let mut events = crate::subscription::EventSubscription::new(self.event_tx.subscribe());
         let wait = async {
             let mut admission = Box::pin(self.send(opts));
             let mut pending = Vec::new();
@@ -1460,11 +1483,16 @@ impl Client {
     ///
     /// # Event delivery
     ///
-    /// Equivalent to `prepare_resume_session(config)?.start().await`, and
-    /// carries the same startup-event caveat documented on
-    /// [`create_session`](Self::create_session). Use
-    /// [`prepare_resume_session`](Self::prepare_resume_session) when
-    /// startup events matter.
+    /// Equivalent to `prepare_resume_session(config)?.start().await`. With no
+    /// active prepared subscriber at startup, routed events are retained in an
+    /// ordered, unbounded bootstrap queue. The first [`Session::subscribe`]
+    /// call claims that complete prefix and switches atomically to bounded
+    /// live delivery once caught up. Later subscriptions are live-only.
+    /// See [`Session::subscribe`] for ownership, cleanup, and router limits.
+    ///
+    /// Use [`prepare_resume_session`](Self::prepare_resume_session) when the
+    /// consumer must be installed before protocol activity begins or when
+    /// multiple startup observers are required.
     pub async fn resume_session(&self, config: ResumeSessionConfig) -> Result<Session, Error> {
         self.prepare_resume_session(config)?.start().await
     }
@@ -1641,6 +1669,7 @@ impl Client {
                         capabilities,
                         open_canvases,
                         event_tx,
+                        None,
                         shutdown,
                         external_tools_shutdown,
                         startup_tasks,
@@ -1818,6 +1847,7 @@ impl Client {
             capabilities,
             open_canvases,
             event_tx,
+            resume_bootstrap: None,
             github_token_registration: ParkingLotMutex::new(github_token_registration),
             registration_token,
         };
@@ -1976,6 +2006,9 @@ impl Client {
 
         let capabilities = Arc::new(parking_lot::RwLock::new(SessionCapabilities::default()));
         let setup_start = Instant::now();
+        // Active prepared subscribers retain their existing bounded delivery.
+        let resume_bootstrap = (event_tx.receiver_count() == 0)
+            .then(|| crate::subscription::ResumeBootstrap::new(&event_tx));
         let registration = self.register_session(&session_id);
         let registration_token = registration.token;
         let channels = registration.channels;
@@ -1997,6 +2030,7 @@ impl Client {
             capabilities.clone(),
             open_canvases.clone(),
             event_tx.clone(),
+            resume_bootstrap.clone(),
             shutdown.clone(),
             external_tools_shutdown.clone(),
             None,
@@ -2110,6 +2144,7 @@ impl Client {
             capabilities,
             open_canvases,
             event_tx,
+            resume_bootstrap,
             github_token_registration: ParkingLotMutex::new(github_token_registration),
             registration_token,
         };
@@ -2168,8 +2203,8 @@ impl Client {
 ///
 /// # Buffering
 ///
-/// The broadcast buffer is finite —
-/// [`DEFAULT_EVENT_BUFFER_CAPACITY`] unless
+/// Subscriptions taken directly from this prepared handle use the finite
+/// broadcast buffer — [`DEFAULT_EVENT_BUFFER_CAPACITY`] unless
 /// [`SessionConfig::event_buffer_capacity`] /
 /// [`ResumeSessionConfig::event_buffer_capacity`] overrides it. Subscribers
 /// that fall behind observe
@@ -2177,6 +2212,10 @@ impl Client {
 /// to the event loop. Consumers that need a lossless view of a large
 /// startup burst must either configure a capacity that covers it or drain
 /// the subscription concurrently with [`start`](Self::start).
+///
+/// If a resume starts with no active prepared subscription, the eventual
+/// [`Session`] instead retains routed startup events in the unbounded,
+/// one-shot bootstrap queue documented on [`Session::subscribe`].
 ///
 /// # Server-assigned session IDs
 ///
@@ -2406,6 +2445,7 @@ fn spawn_event_loop(
     capabilities: Arc<parking_lot::RwLock<SessionCapabilities>>,
     open_canvases: Arc<parking_lot::RwLock<Vec<OpenCanvasInstance>>>,
     event_tx: tokio::sync::broadcast::Sender<SessionEvent>,
+    resume_bootstrap: Option<Arc<crate::subscription::ResumeBootstrap>>,
     shutdown: CancellationToken,
     external_tools_shutdown: CancellationToken,
     startup_tasks: Option<Arc<StartupTasks>>,
@@ -2416,10 +2456,16 @@ fn spawn_event_loop(
     } = channels;
     let pending_external_tools: PendingExternalTools =
         Arc::new(ParkingLotMutex::new(HashMap::new()));
+    // Capture cleanup before spawning so even cancellation before the first
+    // task poll releases an unclaimed backlog.
+    let bootstrap_cleanup = resume_bootstrap
+        .as_ref()
+        .map(|bootstrap| bootstrap.cleanup_guard());
 
     let span = tracing::error_span!("session_event_loop", session_id = %session_id);
     tokio::spawn(
         async move {
+            let _bootstrap_cleanup = bootstrap_cleanup;
             loop {
                 // `mpsc::UnboundedReceiver::recv` and
                 // `CancellationToken::cancelled` are both cancel-safe per
@@ -2448,7 +2494,7 @@ fn spawn_event_loop(
                     _ = shutdown.cancelled() => break,
                     Some(notification) = notifications.recv() => {
                         handle_notification(
-                            &session_id, &client, &handlers, &command_handlers, notification, &idle_waiter, &capabilities, &open_canvases, &event_tx, &shutdown, &external_tools_shutdown, &pending_external_tools, startup_tasks.as_ref(),
+                            &session_id, &client, &handlers, &command_handlers, notification, &idle_waiter, &capabilities, &open_canvases, &event_tx, resume_bootstrap.as_ref(), &shutdown, &external_tools_shutdown, &pending_external_tools, startup_tasks.as_ref(),
                         ).await;
                     }
                     Some(request) = requests.recv() => {
@@ -2615,6 +2661,7 @@ async fn handle_notification(
     capabilities: &Arc<parking_lot::RwLock<SessionCapabilities>>,
     open_canvases: &Arc<parking_lot::RwLock<Vec<OpenCanvasInstance>>>,
     event_tx: &tokio::sync::broadcast::Sender<SessionEvent>,
+    resume_bootstrap: Option<&Arc<crate::subscription::ResumeBootstrap>>,
     shutdown: &CancellationToken,
     external_tools_shutdown: &CancellationToken,
     pending_external_tools: &PendingExternalTools,
@@ -2723,10 +2770,12 @@ async fn handle_notification(
         }
     }
 
-    // Fan out the event to runtime subscribers (`Session::subscribe`). `send`
-    // only errors when there are no receivers, which is the normal case
-    // before any consumer subscribes.
-    let _ = event_tx.send(event.clone());
+    if let Some(bootstrap) = resume_bootstrap {
+        bootstrap.publish(event_tx, event.clone());
+    } else {
+        // No receivers is normal before any consumer subscribes.
+        let _ = event_tx.send(event.clone());
+    }
     if let Some((tx, result)) = completion {
         let _ = tx.send(result);
     }
