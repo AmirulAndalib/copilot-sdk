@@ -4311,7 +4311,7 @@ export type ResponseFormat = {
   type: "json_schema";
 };
 /**
- * Origin of the sandbox choice supplied by the host. Settings-derived origins let managed policy floor the host preference; do not tag explicit session overrides as settings-derived.
+ * Origin of the sandbox choice supplied by the host. This value describes preference or session intent; it does not authorize bypassing managed policy.
  *
  * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
  * via the `definition` "SandboxConfigSource".
@@ -4324,7 +4324,7 @@ export type SandboxConfigSource =
   | "user_enabled"
   /** The user's persisted settings disabled the sandbox. */
   | "user_disabled"
-  /** A command-line flag selected the sandbox state for this session. */
+  /** An explicit session-scoped choice selected the sandbox state, such as a command-line flag. */
   | "session_flag"
   /** The user disabled the sandbox for the current session. */
   | "session_disabled"
@@ -22018,6 +22018,11 @@ export interface SessionOpenOptions {
    */
   shellProcessFlags?: string[];
   sandboxConfig?: SandboxConfig;
+  /**
+   * Origin of the sandbox choice. Settings-derived origins (never_configured, user_enabled, user_disabled, repository_policy) let managed policy floor a host preference; explicit below-floor changes remain policy conflicts unless a session opt-out is authorized. Also used for telemetry provenance.
+   *
+   * @experimental
+   */
   sandboxConfigSource?: SandboxConfigSource;
   /**
    * Whether interactive shell sessions are logged.
@@ -23544,6 +23549,11 @@ export interface SessionUpdateOptionsParams {
    */
   shellProcessFlags?: string[];
   sandboxConfig?: SandboxConfig;
+  /**
+   * Origin of the sandbox choice. Settings-derived origins (never_configured, user_enabled, user_disabled, repository_policy) let managed policy floor a host preference; explicit below-floor changes remain policy conflicts unless a session opt-out is authorized. Also used for telemetry provenance.
+   *
+   * @experimental
+   */
   sandboxConfigSource?: SandboxConfigSource;
   /**
    * Whether interactive shell sessions are logged.

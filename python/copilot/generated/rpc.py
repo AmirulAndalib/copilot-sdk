@@ -10654,9 +10654,8 @@ class SandboxConfigUserPolicySeatbelt:
 
 # Experimental: this type is part of an experimental API and may change or be removed.
 class SandboxConfigSource(Enum):
-    """Origin of the sandbox choice supplied by the host. Settings-derived origins let managed
-    policy floor the host preference; do not tag explicit session overrides as
-    settings-derived.
+    """Origin of the sandbox choice supplied by the host. This value describes preference or
+    session intent; it does not authorize bypassing managed policy.
 
     Origin of the sandbox choice. Settings-derived origins (never_configured, user_enabled,
     user_disabled, repository_policy) let managed policy floor a host preference; explicit

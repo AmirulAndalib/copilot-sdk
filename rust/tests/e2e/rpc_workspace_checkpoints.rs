@@ -5,7 +5,7 @@ use std::sync::Arc;
 use github_copilot_sdk::ResumeSessionConfig;
 use github_copilot_sdk::handler::ApproveAllHandler;
 use github_copilot_sdk::rpc::{
-    WorkspaceDiffFileChangeType, WorkspaceDiffMode, WorkspacesDiffRequest,
+    SessionsSaveRequest, WorkspaceDiffFileChangeType, WorkspaceDiffMode, WorkspacesDiffRequest,
     WorkspacesReadCheckpointRequest, WorkspacesReadFileRequest, WorkspacesSaveLargePasteRequest,
     WorkspacesWorkspaceDetailsHostType,
 };
@@ -189,7 +189,9 @@ fn normalize_path(path: &str) -> String {
 
 #[tokio::test]
 async fn should_record_git_context_in_a_new_session_workspace() {
-    super::support::with_e2e_context_no_snapshot(|ctx| {
+    // Reuse session.rs::should_have_stateful_conversation's cassette to create persisted history;
+    // keep the first-turn prompt below aligned with that owner.
+    super::support::with_e2e_context("session", "should_have_stateful_conversation", |ctx| {
         Box::pin(async move {
             ctx.set_default_copilot_user();
             init_git_repository(ctx.work_dir());
@@ -230,23 +232,18 @@ async fn should_record_git_context_in_a_new_session_workspace() {
 
             assert_eq!(workspace.repository.as_deref(), Some("test-org/test-repo"));
             assert_eq!(workspace.branch.as_deref(), Some("feature/test-branch"));
-            // The repository was created exactly at the session's working
-            // directory, so the recorded root is that directory and not an
-            // ancestor of it.
-            let git_root = normalize_path(workspace.git_root.as_deref().expect("git root"));
+            // Git may expand Windows 8.3 paths or resolve platform directory aliases.
+            // Compare directory identities, not the spellings returned by Git and the host.
+            let work_dir = ctx.work_dir().canonicalize().expect("canonical work dir");
+            let git_root = Path::new(workspace.git_root.as_deref().expect("git root"))
+                .canonicalize()
+                .expect("canonical git root");
+            assert_eq!(git_root, work_dir);
             assert_eq!(
-                Some(git_root.as_str()),
-                workspace.cwd.as_deref().map(normalize_path).as_deref()
-            );
-            let work_dir_name = ctx
-                .work_dir()
-                .file_name()
-                .expect("work dir name")
-                .to_string_lossy()
-                .into_owned();
-            assert!(
-                git_root.ends_with(&format!("/{work_dir_name}")),
-                "git root {git_root} should be the test work directory {work_dir_name}"
+                Path::new(workspace.cwd.as_deref().expect("workspace cwd"))
+                    .canonicalize()
+                    .expect("canonical workspace cwd"),
+                work_dir
             );
             assert_eq!(
                 workspace.host_type,
@@ -257,6 +254,22 @@ async fn should_record_git_context_in_a_new_session_workspace() {
             // The recorded context survives a resume rather than being dropped
             // or re-derived into something else.
             let session_id = session.id().clone();
+            // Empty sessions are not persisted; complete a replay-backed turn before resuming.
+            let answer = session
+                .send_and_wait("What is 1+1?")
+                .await
+                .expect("send")
+                .expect("assistant message");
+            // Validate the final assistant response arrived (guards against truncated captures).
+            assert!(super::support::assistant_message_content(&answer).contains('2'));
+            client
+                .rpc()
+                .sessions()
+                .save(SessionsSaveRequest {
+                    session_id: session_id.clone(),
+                })
+                .await
+                .expect("persist session before disconnect");
             session.disconnect().await.expect("disconnect session");
             let resumed = client
                 .resume_session(
@@ -282,6 +295,10 @@ async fn should_record_git_context_in_a_new_session_workspace() {
                 resumed_workspace.branch.as_deref(),
                 Some("feature/test-branch")
             );
+            assert_eq!(resumed_workspace.git_root, workspace.git_root);
+            assert_eq!(resumed_workspace.cwd, workspace.cwd);
+            assert_eq!(resumed_workspace.host_type, workspace.host_type);
+            assert_eq!(resumed_workspace.client_name, workspace.client_name);
 
             resumed.disconnect().await.expect("disconnect resumed");
             client.stop().await.expect("stop client");

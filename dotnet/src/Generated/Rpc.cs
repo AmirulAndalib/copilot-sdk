@@ -17487,6 +17487,7 @@ internal sealed class SessionUpdateOptionsParams
     public SandboxConfig? SandboxConfig { get; set; }
 
     /// <summary>Origin of the sandbox choice. Settings-derived origins (never_configured, user_enabled, user_disabled, repository_policy) let managed policy floor a host preference; explicit below-floor changes remain policy conflicts unless a session opt-out is authorized. Also used for telemetry provenance.</summary>
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
     [JsonPropertyName("sandboxConfigSource")]
     public SandboxConfigSource? SandboxConfigSource { get; set; }
 
@@ -35902,7 +35903,7 @@ public readonly struct OptionsUpdateReasoningSummary : IEquatable<OptionsUpdateR
 }
 
 
-/// <summary>Origin of the sandbox choice supplied by the host. Settings-derived origins let managed policy floor the host preference; do not tag explicit session overrides as settings-derived.</summary>
+/// <summary>Origin of the sandbox choice supplied by the host. This value describes preference or session intent; it does not authorize bypassing managed policy.</summary>
 [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 [JsonConverter(typeof(Converter))]
 [DebuggerDisplay("{Value,nq}")]
@@ -35931,7 +35932,7 @@ public readonly struct SandboxConfigSource : IEquatable<SandboxConfigSource>
     /// <summary>The user's persisted settings disabled the sandbox.</summary>
     public static SandboxConfigSource UserDisabled { get; } = new("user_disabled");
 
-    /// <summary>A command-line flag selected the sandbox state for this session.</summary>
+    /// <summary>An explicit session-scoped choice selected the sandbox state, such as a command-line flag.</summary>
     public static SandboxConfigSource SessionFlag { get; } = new("session_flag");
 
     /// <summary>The user disabled the sandbox for the current session.</summary>

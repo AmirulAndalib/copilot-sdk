@@ -14588,6 +14588,8 @@ type SessionOpenOptions struct {
 	// user_disabled, repository_policy) let managed policy floor a host preference; explicit
 	// below-floor changes remain policy conflicts unless a session opt-out is authorized. Also
 	// used for telemetry provenance.
+	// Experimental: SandboxConfigSource is part of an experimental API and may change or be
+	// removed.
 	SandboxConfigSource *SandboxConfigSource `json:"sandboxConfigSource,omitempty"`
 	// Capabilities enabled for this session.
 	SessionCapabilities []SessionCapability `json:"sessionCapabilities,omitzero"`
@@ -15840,6 +15842,8 @@ type SessionUpdateOptionsParams struct {
 	// user_disabled, repository_policy) let managed policy floor a host preference; explicit
 	// below-floor changes remain policy conflicts unless a session opt-out is authorized. Also
 	// used for telemetry provenance.
+	// Experimental: SandboxConfigSource is part of an experimental API and may change or be
+	// removed.
 	SandboxConfigSource *SandboxConfigSource `json:"sandboxConfigSource,omitempty"`
 	// Replaces the session's capability set with the given list. Use to enable or disable
 	// capabilities mid-session (e.g., remove `memory` for reproducible scripted runs). Omit the
@@ -23664,9 +23668,8 @@ const (
 	ResponseFormatTypeJSONSchema ResponseFormatType = "json_schema"
 )
 
-// Origin of the sandbox choice supplied by the host. Settings-derived origins let managed
-// policy floor the host preference; do not tag explicit session overrides as
-// settings-derived.
+// Origin of the sandbox choice supplied by the host. This value describes preference or
+// session intent; it does not authorize bypassing managed policy.
 // Experimental: SandboxConfigSource is part of an experimental API and may change or be
 // removed.
 type SandboxConfigSource string
@@ -23678,7 +23681,7 @@ const (
 	SandboxConfigSourceRepositoryPolicy SandboxConfigSource = "repository_policy"
 	// The user disabled the sandbox for the current session.
 	SandboxConfigSourceSessionDisabled SandboxConfigSource = "session_disabled"
-	// A command-line flag selected the sandbox state for this session.
+	// An explicit session-scoped choice selected the sandbox state, such as a command-line flag.
 	SandboxConfigSourceSessionFlag SandboxConfigSource = "session_flag"
 	// The client disabled the sandbox because the host cannot enforce it.
 	SandboxConfigSourceUnsupportedHost SandboxConfigSource = "unsupported_host"

@@ -1207,6 +1207,8 @@ impl std::fmt::Debug for Client {
 
 struct ClientInner {
     child: parking_lot::Mutex<Option<Child>>,
+    owns_stdio: bool,
+    force_stop_requested: tokio_util::sync::CancellationToken,
     process_tree: parking_lot::Mutex<Option<process_tree::ProcessTree>>,
     #[cfg(feature = "in-process")]
     /// In-process FFI runtime host, set only for [`Transport::InProcess`].
@@ -1252,6 +1254,19 @@ struct ClientInner {
     /// [`Client::start`]. Empty for clients built via [`Client::from_streams`]
     /// or [`Client::from_transport`] directly.
     startup_timings: OnceLock<StartupTimings>,
+}
+
+struct StdioShutdownGuard<'a> {
+    client: &'a Client,
+    armed: bool,
+}
+
+impl Drop for StdioShutdownGuard<'_> {
+    fn drop(&mut self) {
+        if self.armed {
+            self.client.force_stop();
+        }
+    }
 }
 
 impl Client {
@@ -1461,6 +1476,7 @@ impl Client {
                     effective_connection_token.clone(),
                     options.mode,
                     options.client_info,
+                    false,
                 )?
             }
             Transport::Tcp {
@@ -1495,6 +1511,7 @@ impl Client {
                     effective_connection_token.clone(),
                     options.mode,
                     options.client_info,
+                    false,
                 )?
             }
             Transport::Stdio => {
@@ -1519,6 +1536,7 @@ impl Client {
                     effective_connection_token.clone(),
                     options.mode,
                     options.client_info,
+                    true,
                 )?
             }
             Transport::InProcess => {
@@ -1587,6 +1605,7 @@ impl Client {
                         effective_connection_token.clone(),
                         options.mode,
                         options.client_info,
+                        false,
                     )?;
                     *client.inner.ffi_host.lock() = Some(shared);
                     client
@@ -1717,6 +1736,7 @@ impl Client {
             None,
             ClientMode::default(),
             None,
+            false,
         )
     }
 
@@ -1745,6 +1765,7 @@ impl Client {
             None,
             ClientMode::default(),
             None,
+            false,
         )
     }
 
@@ -1794,6 +1815,7 @@ impl Client {
             None,
             ClientMode::default(),
             None,
+            false,
         )
     }
 
@@ -1822,6 +1844,7 @@ impl Client {
             token,
             ClientMode::default(),
             None,
+            false,
         )
     }
 
@@ -1850,6 +1873,7 @@ impl Client {
             None,
             ClientMode::default(),
             None,
+            false,
         )
     }
 
@@ -1889,6 +1913,7 @@ impl Client {
             None,
             ClientMode::default(),
             client_info,
+            false,
         )
     }
 
@@ -1910,6 +1935,7 @@ impl Client {
         effective_connection_token: Option<String>,
         mode: ClientMode,
         client_info: Option<ClientInfo>,
+        owns_stdio: bool,
     ) -> Result<Self> {
         let setup_start = Instant::now();
         let (request_tx, request_rx) = mpsc::unbounded_channel::<JsonRpcRequest>();
@@ -1935,6 +1961,8 @@ impl Client {
         let client = Self {
             inner: Arc::new(ClientInner {
                 child: parking_lot::Mutex::new(child),
+                owns_stdio,
+                force_stop_requested: tokio_util::sync::CancellationToken::new(),
                 process_tree: parking_lot::Mutex::new(process_tree),
                 #[cfg(feature = "in-process")]
                 ffi_host: parking_lot::Mutex::new(None),
@@ -2815,8 +2843,10 @@ impl Client {
     /// Cooperatively shut down the client and the CLI child process.
     ///
     /// Walks every still-registered session and sends `session.detach`
-    /// for each one, asks SDK-owned runtimes to shut down, terminates the
-    /// Windows-owned CLI Job Object when present, and reaps the root process.
+    /// for each one and asks SDK-owned runtimes to shut down. For an owned stdio
+    /// child, closes stdin and waits up to 10 seconds for host cleanup and exit
+    /// before falling back to termination. Terminates the Windows-owned CLI
+    /// Job Object when present and bounds the final root-process reap to 10 seconds.
     /// Errors from per-session detaches, runtime shutdown, and final process
     /// termination are collected into [`StopErrors`] rather than
     /// short-circuiting on the first failure — so callers see the full picture
@@ -2824,7 +2854,7 @@ impl Client {
     ///
     /// If you have already called [`Session::disconnect`] on every
     /// session this client created, the per-session destroy step is a
-    /// no-op (the router map is empty); only the child-kill remains.
+    /// no-op (the router map is empty); runtime and process shutdown still run.
     ///
     /// [`Session::disconnect`]: crate::session::Session::disconnect
     ///
@@ -2839,6 +2869,8 @@ impl Client {
     /// or call `stop()` again with a fresh future. The documented
     /// `tokio::time::timeout(..., client.stop())` pattern in the example
     /// below uses `force_stop` as the fallback for exactly this case.
+    /// Once owned-stdio exit waiting begins, cancelling `stop()` forcibly
+    /// terminates that child. Concurrent `force_stop()` also interrupts the wait.
     pub async fn stop(&self) -> std::result::Result<(), StopErrors> {
         let pid = self.pid();
         info!(pid = ?pid, "stopping CLI process");
@@ -2903,10 +2935,43 @@ impl Client {
             }
         }
 
-        let child = self.inner.child.lock().take();
-        let process_tree = self.inner.process_tree.lock().take();
         *self.inner.state.lock() = ConnectionState::Disconnected;
         *self.inner.models_cache.lock() = Arc::new(tokio::sync::OnceCell::new());
+        if self.inner.owns_stdio && self.inner.child.lock().is_some() {
+            let mut guard = StdioShutdownGuard {
+                client: self,
+                armed: true,
+            };
+            // The host flushes telemetry after stdin EOF, not after the shutdown RPC.
+            // Drop ChildStdin but retain the reader and process tree until exit.
+            self.inner.rpc.close_writer();
+            let wait = async {
+                tokio::select! {
+                    result = std::future::poll_fn(|cx| {
+                        let mut child = self.inner.child.lock();
+                        let Some(child) = child.as_mut() else {
+                            return std::task::Poll::Ready(Ok(()));
+                        };
+                        // Child::wait is cancel-safe; retain ownership between polls so
+                        // synchronous force_stop can still terminate the child and its tree.
+                        std::future::Future::poll(std::pin::pin!(child.wait()), cx)
+                            .map(|result| result.map(|_| ()))
+                    }) => result,
+                    _ = self.inner.force_stop_requested.cancelled() => Ok(()),
+                }
+            };
+            match tokio::time::timeout(RUNTIME_SHUTDOWN_TIMEOUT, wait).await {
+                Ok(Ok(_)) => {}
+                Ok(Err(error)) => errors.push(error.into()),
+                Err(_) => warn!(
+                    timeout = ?RUNTIME_SHUTDOWN_TIMEOUT,
+                    "CLI did not exit after stdin EOF; terminating"
+                ),
+            }
+            guard.armed = false;
+        }
+        let child = self.inner.child.lock().take();
+        let process_tree = self.inner.process_tree.lock().take();
         if let Some(process_tree) = process_tree
             && let Err(error) = process_tree.terminate()
         {
@@ -2916,14 +2981,16 @@ impl Client {
             match child.try_wait() {
                 Ok(Some(_status)) => {}
                 Ok(None) => {
-                    // The runtime completes all cleanup before responding to
-                    // runtime.shutdown and then leaves termination to us; it
-                    // deliberately keeps its JSON-RPC server alive to send the
-                    // response and never self-exits. Waiting for a self-exit
-                    // that will never come just wastes time, so terminate the
-                    // child immediately.
-                    if let Err(e) = child.kill().await {
-                        errors.push(e.into());
+                    match tokio::time::timeout(RUNTIME_SHUTDOWN_TIMEOUT, child.kill()).await {
+                        Ok(Ok(())) => {}
+                        Ok(Err(error)) => errors.push(error.into()),
+                        Err(_) => errors.push(
+                            std::io::Error::new(
+                                std::io::ErrorKind::TimedOut,
+                                "CLI process reap timed out during Client::stop",
+                            )
+                            .into(),
+                        ),
                     }
                 }
                 Err(e) => errors.push(e.into()),
@@ -2991,6 +3058,7 @@ impl Client {
         {
             error!(pid = ?pid, error = %e, "failed to send kill signal");
         }
+        self.inner.force_stop_requested.cancel();
         self.inner.rpc.force_close();
         #[cfg(feature = "in-process")]
         {
@@ -3752,6 +3820,7 @@ mod tests {
             None,
             ClientMode::default(),
             None,
+            false,
         )
         .unwrap();
 
@@ -3826,6 +3895,8 @@ mod tests {
         Client {
             inner: Arc::new(ClientInner {
                 child: parking_lot::Mutex::new(None),
+                owns_stdio: false,
+                force_stop_requested: tokio_util::sync::CancellationToken::new(),
                 process_tree: parking_lot::Mutex::new(None),
                 #[cfg(feature = "in-process")]
                 ffi_host: parking_lot::Mutex::new(None),
