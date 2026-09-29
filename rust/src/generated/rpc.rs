@@ -11583,6 +11583,42 @@ impl<'a> SessionRpcSandbox<'a> {
             .await?;
         Ok(serde_json::from_value(_value)?)
     }
+
+    /// Adds the path offered by a pending sandbox escalation permission request's sandboxPathGrant to the session's sandbox policy and approves the request, so the blocked operation re-runs inside the sandbox rather than outside it. The request is rejected unless the exact request is still pending, carries a sandboxPathGrant, and the grant still takes effect under the current managed policy. Does not persist the path; hosts that store sandbox settings save it themselves.
+    ///
+    /// Wire method: `session.sandbox.grantPathForRequest`.
+    ///
+    /// # Parameters
+    ///
+    /// * `params` - Request to accept the sandbox path grant offered on an active sandbox escalation permission prompt.
+    ///
+    /// # Returns
+    ///
+    /// Result of accepting a sandbox path grant.
+    ///
+    /// <div class="warning">
+    ///
+    /// **Experimental.** This API is part of an experimental wire-protocol surface
+    /// and may change or be removed in future SDK or CLI releases. Pin both the
+    /// SDK and CLI versions if your code depends on it.
+    ///
+    /// </div>
+    pub async fn grant_path_for_request(
+        &self,
+        params: SandboxGrantPathForRequestRequest,
+    ) -> Result<SandboxGrantPathForRequestResult, Error> {
+        let mut wire_params = serde_json::to_value(params)?;
+        wire_params["sessionId"] = serde_json::Value::String(self.session.id().to_string());
+        let _value = self
+            .session
+            .client()
+            .call(
+                rpc_methods::SESSION_SANDBOX_GRANTPATHFORREQUEST,
+                Some(wire_params),
+            )
+            .await?;
+        Ok(serde_json::from_value(_value)?)
+    }
 }
 
 /// `session.schedule.*` RPCs.

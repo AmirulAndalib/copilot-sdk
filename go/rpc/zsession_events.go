@@ -4016,6 +4016,9 @@ type PermissionPromptRequestCommands struct {
 	RequestSandboxBypassReason *string `json:"requestSandboxBypassReason,omitempty"`
 	// True when the escalation is a permissive retry that keeps the sandbox and network policy attached while recording file and process accesses instead of blocking them.
 	RequestSandboxPermissive *bool `json:"requestSandboxPermissive,omitempty"`
+	// Sandbox policy edit that would let the command run inside the sandbox. Only present when requestSandboxBypass is true.
+	// Experimental: SandboxPathGrant is part of an experimental API and may change or be removed.
+	SandboxPathGrant *PermissionSandboxPathGrant `json:"sandboxPathGrant,omitempty"`
 	// Tool call ID that triggered this permission request
 	ToolCallID *string `json:"toolCallId,omitempty"`
 	// Optional warning message about risks of running this command
@@ -4495,6 +4498,9 @@ type PermissionRequestRead struct {
 	// Runtime-resolved canonical path used for authorization identity checks. Internal and experimental; clients should continue to display path.
 	// Experimental: ResolvedPath is part of an experimental API and may change or be removed.
 	ResolvedPath *string `json:"resolvedPath,omitempty"`
+	// Sandbox policy edit that would let the read run inside the sandbox. Only present when requestSandboxBypass is true.
+	// Experimental: SandboxPathGrant is part of an experimental API and may change or be removed.
+	SandboxPathGrant *PermissionSandboxPathGrant `json:"sandboxPathGrant,omitempty"`
 	// Tool call ID that triggered this permission request
 	ToolCallID *string `json:"toolCallId,omitempty"`
 }
@@ -4536,6 +4542,9 @@ type PermissionRequestShell struct {
 	// Runtime-resolved canonical working directory the command runs in, used for authorization identity checks. Internal and experimental; clients should not display it.
 	// Experimental: ResolvedWorkingDirectory is part of an experimental API and may change or be removed.
 	ResolvedWorkingDirectory *string `json:"resolvedWorkingDirectory,omitempty"`
+	// Sandbox policy edit that would let the command run inside the sandbox. Only present when requestSandboxBypass is true.
+	// Experimental: SandboxPathGrant is part of an experimental API and may change or be removed.
+	SandboxPathGrant *PermissionSandboxPathGrant `json:"sandboxPathGrant,omitempty"`
 	// Tool call ID that triggered this permission request
 	ToolCallID *string `json:"toolCallId,omitempty"`
 	// Optional warning message about risks of running this command
@@ -4632,6 +4641,9 @@ type PermissionRequestWrite struct {
 	// Runtime-resolved canonical path used for authorization identity checks. Internal and experimental; clients should continue to display fileName.
 	// Experimental: ResolvedPath is part of an experimental API and may change or be removed.
 	ResolvedPath *string `json:"resolvedPath,omitempty"`
+	// Sandbox policy edit that would let the write run inside the sandbox. Only present when requestSandboxBypass is true.
+	// Experimental: SandboxPathGrant is part of an experimental API and may change or be removed.
+	SandboxPathGrant *PermissionSandboxPathGrant `json:"sandboxPathGrant,omitempty"`
 	// Tool call ID that triggered this permission request
 	ToolCallID *string `json:"toolCallId,omitempty"`
 }
@@ -4786,6 +4798,19 @@ type PermissionDeniedNoApprovalRuleAndCouldNotRequestFromUser struct {
 func (PermissionDeniedNoApprovalRuleAndCouldNotRequestFromUser) permissionResult() {}
 func (PermissionDeniedNoApprovalRuleAndCouldNotRequestFromUser) Kind() PermissionResultKind {
 	return PermissionResultKindDeniedNoApprovalRuleAndCouldNotRequestFromUser
+}
+
+// A sandbox filesystem policy edit that would let a blocked operation run inside the sandbox instead of outside it. Offered only on a sandbox escalation request whose denial adding this path lifts, and only when managed policy permits the grant. A host accepts it with session.sandbox.grantPathForRequest, which adds the path to the session's sandbox policy and re-runs the operation sandboxed; a host that persists sandbox settings may also save the path there.
+// Experimental: PermissionSandboxPathGrant is part of an experimental API and may change or be removed.
+type PermissionSandboxPathGrant struct {
+	// Which access the grant confers, and so which policy list the path is added to
+	Access PermissionSandboxPathGrantAccess `json:"access"`
+	// The path the sandbox refused, present only when it differs from path. That happens when a write under a read-only folder moves the folder to the read-write paths, when a path that does not exist yet is granted through its nearest existing folder, because the OS sandbox cannot grant a path before it exists, and when either is spelled through a symlink, because a grant covers its path as written, so path is then the resolved location. Hosts should then name path in the offer, since the denial names this one.
+	DeniedPath *string `json:"deniedPath,omitempty"`
+	// Absolute path to add to the sandbox filesystem policy
+	Path string `json:"path"`
+	// readonlyPaths entries the grant removes, exactly as written in the policy, because a read-only entry for the same location would otherwise keep the path read-only. A host that persists the path must remove these entries from its stored readonlyPaths too.
+	RemovedReadonlyPaths []string `json:"removedReadonlyPaths,omitzero"`
 }
 
 // A model-facing binary result as persisted: full inline data, a size-omitted marker, or a deduplicated asset reference
@@ -6359,6 +6384,16 @@ const (
 	PermissionResultKindDeniedByRules                                  PermissionResultKind = "denied-by-rules"
 	PermissionResultKindDeniedInteractivelyByUser                      PermissionResultKind = "denied-interactively-by-user"
 	PermissionResultKindDeniedNoApprovalRuleAndCouldNotRequestFromUser PermissionResultKind = "denied-no-approval-rule-and-could-not-request-from-user"
+)
+
+// Access a sandbox path grant confers
+type PermissionSandboxPathGrantAccess string
+
+const (
+	// Read access: the path is added to readonlyPaths.
+	PermissionSandboxPathGrantAccessRead PermissionSandboxPathGrantAccess = "read"
+	// Read and write access: the path is added to readwritePaths.
+	PermissionSandboxPathGrantAccessReadWrite PermissionSandboxPathGrantAccess = "readWrite"
 )
 
 // Binary result type discriminator. Use "image" for images and "resource" for other binary data.

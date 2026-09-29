@@ -481,6 +481,11 @@ impl E2eContext {
         self.work_dir.path()
     }
 
+    /// The runtime's `COPILOT_HOME`, which holds `session-state/`.
+    pub fn home_dir(&self) -> &Path {
+        self.home_dir.path()
+    }
+
     pub fn proxy_url(&self) -> &str {
         self.proxy().url()
     }

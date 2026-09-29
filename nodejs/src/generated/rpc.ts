@@ -20305,6 +20305,33 @@ export interface SandboxEnforcementStatus {
   reason?: string;
 }
 /**
+ * Request to accept the sandbox path grant offered on an active sandbox escalation permission prompt.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "SandboxGrantPathForRequestRequest".
+ */
+/** @experimental */
+export interface SandboxGrantPathForRequestRequest {
+  /**
+   * Identifier of the exact pending sandbox escalation permission request whose sandboxPathGrant to accept.
+   */
+  requestId: string;
+  decisionContext?: PermissionDecisionContext;
+}
+/**
+ * Result of accepting a sandbox path grant.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "SandboxGrantPathForRequestResult".
+ */
+/** @experimental */
+export interface SandboxGrantPathForRequestResult {
+  /**
+   * Whether this call resolved the pending request and added the path to the session's sandbox policy.
+   */
+  success: boolean;
+}
+/**
  * Whether this host can run one sandbox policy feature. A session whose effective policy uses an unsupported feature fails each sandboxed command with `reason`.
  *
  * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
@@ -29516,6 +29543,15 @@ export function createSessionRpc(connection: MessageConnection, sessionId: strin
              */
             disableForSession: async (params: SandboxDisableForSessionRequest): Promise<SandboxDisableForSessionResult> =>
                 connection.sendRequest("session.sandbox.disableForSession", { sessionId, ...params }),
+            /**
+             * Adds the path offered by a pending sandbox escalation permission request's sandboxPathGrant to the session's sandbox policy and approves the request, so the blocked operation re-runs inside the sandbox rather than outside it. The request is rejected unless the exact request is still pending, carries a sandboxPathGrant, and the grant still takes effect under the current managed policy. Does not persist the path; hosts that store sandbox settings save it themselves.
+             *
+             * @param params Request to accept the sandbox path grant offered on an active sandbox escalation permission prompt.
+             *
+             * @returns Result of accepting a sandbox path grant.
+             */
+            grantPathForRequest: async (params: SandboxGrantPathForRequestRequest): Promise<SandboxGrantPathForRequestResult> =>
+                connection.sendRequest("session.sandbox.grantPathForRequest", { sessionId, ...params }),
         },
         /**
          * Aborts the current agent turn.

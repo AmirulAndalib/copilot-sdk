@@ -260,6 +260,8 @@ type (
 	PermissionResult                                               = rpc.PermissionResult
 	PermissionResultKind                                           = rpc.PermissionResultKind
 	PermissionRule                                                 = rpc.PermissionRule
+	PermissionSandboxPathGrant                                     = rpc.PermissionSandboxPathGrant
+	PermissionSandboxPathGrantAccess                               = rpc.PermissionSandboxPathGrantAccess
 	PersistedBinaryImage                                           = rpc.PersistedBinaryImage
 	PersistedBinaryImageType                                       = rpc.PersistedBinaryImageType
 	PersistedBinaryResult                                          = rpc.PersistedBinaryResult
@@ -806,6 +808,8 @@ const (
 	PermissionResultKindDeniedByRules                                    = rpc.PermissionResultKindDeniedByRules
 	PermissionResultKindDeniedInteractivelyByUser                        = rpc.PermissionResultKindDeniedInteractivelyByUser
 	PermissionResultKindDeniedNoApprovalRuleAndCouldNotRequestFromUser   = rpc.PermissionResultKindDeniedNoApprovalRuleAndCouldNotRequestFromUser
+	PermissionSandboxPathGrantAccessRead                                 = rpc.PermissionSandboxPathGrantAccessRead
+	PermissionSandboxPathGrantAccessReadWrite                            = rpc.PermissionSandboxPathGrantAccessReadWrite
 	PersistedBinaryImageTypeImage                                        = rpc.PersistedBinaryImageTypeImage
 	PersistedBinaryImageTypeResource                                     = rpc.PersistedBinaryImageTypeResource
 	PersistedBinaryResultTypeImage                                       = rpc.PersistedBinaryResultTypeImage

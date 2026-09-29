@@ -10325,6 +10325,30 @@ public sealed partial class PermissionRequestShellPossibleUrl
     public required string Url { get; set; }
 }
 
+/// <summary>A sandbox filesystem policy edit that would let a blocked operation run inside the sandbox instead of outside it. Offered only on a sandbox escalation request whose denial adding this path lifts, and only when managed policy permits the grant. A host accepts it with session.sandbox.grantPathForRequest, which adds the path to the session's sandbox policy and re-runs the operation sandboxed; a host that persists sandbox settings may also save the path there.</summary>
+/// <remarks>Nested data type for <c>PermissionSandboxPathGrant</c>.</remarks>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+public sealed partial class PermissionSandboxPathGrant
+{
+    /// <summary>Which access the grant confers, and so which policy list the path is added to.</summary>
+    [JsonPropertyName("access")]
+    public required PermissionSandboxPathGrantAccess Access { get; set; }
+
+    /// <summary>The path the sandbox refused, present only when it differs from path. That happens when a write under a read-only folder moves the folder to the read-write paths, when a path that does not exist yet is granted through its nearest existing folder, because the OS sandbox cannot grant a path before it exists, and when either is spelled through a symlink, because a grant covers its path as written, so path is then the resolved location. Hosts should then name path in the offer, since the denial names this one.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("deniedPath")]
+    public string? DeniedPath { get; set; }
+
+    /// <summary>Absolute path to add to the sandbox filesystem policy.</summary>
+    [JsonPropertyName("path")]
+    public required string Path { get; set; }
+
+    /// <summary>readonlyPaths entries the grant removes, exactly as written in the policy, because a read-only entry for the same location would otherwise keep the path read-only. A host that persists the path must remove these entries from its stored readonlyPaths too.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("removedReadonlyPaths")]
+    public string[]? RemovedReadonlyPaths { get; set; }
+}
+
 /// <summary>Shell command permission request.</summary>
 /// <remarks>The <c>shell</c> variant of <see cref="PermissionRequest"/>.</remarks>
 public sealed partial class PermissionRequestShell : PermissionRequest
@@ -10402,6 +10426,12 @@ public sealed partial class PermissionRequestShell : PermissionRequest
     [JsonPropertyName("resolvedWorkingDirectory")]
     public string? ResolvedWorkingDirectory { get; set; }
 
+    /// <summary>Sandbox policy edit that would let the command run inside the sandbox. Only present when requestSandboxBypass is true.</summary>
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("sandboxPathGrant")]
+    public PermissionSandboxPathGrant? SandboxPathGrant { get; set; }
+
     /// <summary>Tool call ID that triggered this permission request.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("toolCallId")]
@@ -10467,6 +10497,12 @@ public sealed partial class PermissionRequestWrite : PermissionRequest
     [JsonPropertyName("resolvedPath")]
     public string? ResolvedPath { get; set; }
 
+    /// <summary>Sandbox policy edit that would let the write run inside the sandbox. Only present when requestSandboxBypass is true.</summary>
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("sandboxPathGrant")]
+    public PermissionSandboxPathGrant? SandboxPathGrant { get; set; }
+
     /// <summary>Tool call ID that triggered this permission request.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("toolCallId")]
@@ -10513,6 +10549,12 @@ public sealed partial class PermissionRequestRead : PermissionRequest
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("resolvedPath")]
     public string? ResolvedPath { get; set; }
+
+    /// <summary>Sandbox policy edit that would let the read run inside the sandbox. Only present when requestSandboxBypass is true.</summary>
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("sandboxPathGrant")]
+    public PermissionSandboxPathGrant? SandboxPathGrant { get; set; }
 
     /// <summary>Tool call ID that triggered this permission request.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -11025,6 +11067,12 @@ public sealed partial class PermissionPromptRequestCommands : PermissionPromptRe
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("requestSandboxPermissive")]
     public bool? RequestSandboxPermissive { get; set; }
+
+    /// <summary>Sandbox policy edit that would let the command run inside the sandbox. Only present when requestSandboxBypass is true.</summary>
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("sandboxPathGrant")]
+    public PermissionSandboxPathGrant? SandboxPathGrant { get; set; }
 
     /// <summary>Tool call ID that triggered this permission request.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -18053,6 +18101,67 @@ public readonly struct SystemNotificationWorkflowCompletedStatus : IEquatable<Sy
     }
 }
 
+/// <summary>Access a sandbox path grant confers.</summary>
+[JsonConverter(typeof(Converter))]
+[DebuggerDisplay("{Value,nq}")]
+public readonly struct PermissionSandboxPathGrantAccess : IEquatable<PermissionSandboxPathGrantAccess>
+{
+    private readonly string? _value;
+
+    /// <summary>Initializes a new instance of the <see cref="PermissionSandboxPathGrantAccess"/> struct.</summary>
+    /// <param name="value">The value to associate with this <see cref="PermissionSandboxPathGrantAccess"/>.</param>
+    [JsonConstructor]
+    public PermissionSandboxPathGrantAccess(string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        _value = value;
+    }
+
+    /// <summary>Gets the value associated with this <see cref="PermissionSandboxPathGrantAccess"/>.</summary>
+    public string Value => _value ?? string.Empty;
+
+    /// <summary>Read access: the path is added to readonlyPaths.</summary>
+    public static PermissionSandboxPathGrantAccess Read { get; } = new("read");
+
+    /// <summary>Read and write access: the path is added to readwritePaths.</summary>
+    public static PermissionSandboxPathGrantAccess ReadWrite { get; } = new("readWrite");
+
+    /// <summary>Returns a value indicating whether two <see cref="PermissionSandboxPathGrantAccess"/> instances are equivalent.</summary>
+    public static bool operator ==(PermissionSandboxPathGrantAccess left, PermissionSandboxPathGrantAccess right) => left.Equals(right);
+
+    /// <summary>Returns a value indicating whether two <see cref="PermissionSandboxPathGrantAccess"/> instances are not equivalent.</summary>
+    public static bool operator !=(PermissionSandboxPathGrantAccess left, PermissionSandboxPathGrantAccess right) => !(left == right);
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is PermissionSandboxPathGrantAccess other && Equals(other);
+
+    /// <inheritdoc />
+    public bool Equals(PermissionSandboxPathGrantAccess other) => string.Equals(Value, other.Value, StringComparison.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => StringComparer.OrdinalIgnoreCase.GetHashCode(Value);
+
+    /// <inheritdoc />
+    public override string ToString() => Value;
+
+    /// <summary>Provides a <see cref="JsonConverter{PermissionSandboxPathGrantAccess}"/> for serializing <see cref="PermissionSandboxPathGrantAccess"/> instances.</summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public sealed class Converter : JsonConverter<PermissionSandboxPathGrantAccess>
+    {
+        /// <inheritdoc />
+        public override PermissionSandboxPathGrantAccess Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            return new(GeneratedStringEnumJson.ReadValue(ref reader, typeToConvert));
+        }
+
+        /// <inheritdoc />
+        public override void Write(Utf8JsonWriter writer, PermissionSandboxPathGrantAccess value, JsonSerializerOptions options)
+        {
+            GeneratedStringEnumJson.WriteValue(writer, value.Value, typeof(PermissionSandboxPathGrantAccess));
+        }
+    }
+}
+
 /// <summary>Advisory recommendation the runtime attaches to a permission request whose origin it can vouch for by construction. Unlike the auto-approval judge this does not depend on auto mode and does not evaluate what the tool call does; its absence simply means the runtime has no opinion and the request follows the host's normal approval flow.</summary>
 [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 [JsonConverter(typeof(Converter))]
@@ -20545,6 +20654,7 @@ public readonly struct ExtensionsLoadedExtensionStatus : IEquatable<ExtensionsLo
 [JsonSerializable(typeof(PermissionResultDeniedInteractivelyByUser))]
 [JsonSerializable(typeof(PermissionResultDeniedNoApprovalRuleAndCouldNotRequestFromUser))]
 [JsonSerializable(typeof(PermissionRule))]
+[JsonSerializable(typeof(PermissionSandboxPathGrant))]
 [JsonSerializable(typeof(PersistedBinaryImage))]
 [JsonSerializable(typeof(PersistedBinaryResult))]
 [JsonSerializable(typeof(PromptCacheBreakData))]

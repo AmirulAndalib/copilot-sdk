@@ -5346,6 +5346,29 @@ pub struct PermissionRequestShellPossibleUrl {
     pub url: String,
 }
 
+/// A sandbox filesystem policy edit that would let a blocked operation run inside the sandbox instead of outside it. Offered only on a sandbox escalation request whose denial adding this path lifts, and only when managed policy permits the grant. A host accepts it with session.sandbox.grantPathForRequest, which adds the path to the session's sandbox policy and re-runs the operation sandboxed; a host that persists sandbox settings may also save the path there.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PermissionSandboxPathGrant {
+    /// Which access the grant confers, and so which policy list the path is added to
+    pub access: PermissionSandboxPathGrantAccess,
+    /// The path the sandbox refused, present only when it differs from path. That happens when a write under a read-only folder moves the folder to the read-write paths, when a path that does not exist yet is granted through its nearest existing folder, because the OS sandbox cannot grant a path before it exists, and when either is spelled through a symlink, because a grant covers its path as written, so path is then the resolved location. Hosts should then name path in the offer, since the denial names this one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub denied_path: Option<String>,
+    /// Absolute path to add to the sandbox filesystem policy
+    pub path: String,
+    /// readonlyPaths entries the grant removes, exactly as written in the policy, because a read-only entry for the same location would otherwise keep the path read-only. A host that persists the path must remove these entries from its stored readonlyPaths too.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub removed_readonly_paths: Option<Vec<String>>,
+}
+
 /// Shell command permission request
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -5401,6 +5424,16 @@ pub struct PermissionRequestShell {
     /// </div>
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resolved_working_directory: Option<String>,
+    /// Sandbox policy edit that would let the command run inside the sandbox. Only present when requestSandboxBypass is true.
+    ///
+    /// <div class="warning">
+    ///
+    /// **Experimental.** This type is part of an experimental wire-protocol surface
+    /// and may change or be removed in future SDK or CLI releases.
+    ///
+    /// </div>
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sandbox_path_grant: Option<PermissionSandboxPathGrant>,
     /// Tool call ID that triggered this permission request
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_call_id: Option<String>,
@@ -5445,6 +5478,16 @@ pub struct PermissionRequestWrite {
     /// </div>
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resolved_path: Option<String>,
+    /// Sandbox policy edit that would let the write run inside the sandbox. Only present when requestSandboxBypass is true.
+    ///
+    /// <div class="warning">
+    ///
+    /// **Experimental.** This type is part of an experimental wire-protocol surface
+    /// and may change or be removed in future SDK or CLI releases.
+    ///
+    /// </div>
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sandbox_path_grant: Option<PermissionSandboxPathGrant>,
     /// Tool call ID that triggered this permission request
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_call_id: Option<String>,
@@ -5479,6 +5522,16 @@ pub struct PermissionRequestRead {
     /// </div>
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resolved_path: Option<String>,
+    /// Sandbox policy edit that would let the read run inside the sandbox. Only present when requestSandboxBypass is true.
+    ///
+    /// <div class="warning">
+    ///
+    /// **Experimental.** This type is part of an experimental wire-protocol surface
+    /// and may change or be removed in future SDK or CLI releases.
+    ///
+    /// </div>
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sandbox_path_grant: Option<PermissionSandboxPathGrant>,
     /// Tool call ID that triggered this permission request
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_call_id: Option<String>,
@@ -5833,6 +5886,16 @@ pub struct PermissionPromptRequestCommands {
     /// True when the escalation is a permissive retry that keeps the sandbox and network policy attached while recording file and process accesses instead of blocking them.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub request_sandbox_permissive: Option<bool>,
+    /// Sandbox policy edit that would let the command run inside the sandbox. Only present when requestSandboxBypass is true.
+    ///
+    /// <div class="warning">
+    ///
+    /// **Experimental.** This type is part of an experimental wire-protocol surface
+    /// and may change or be removed in future SDK or CLI releases.
+    ///
+    /// </div>
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sandbox_path_grant: Option<PermissionSandboxPathGrant>,
     /// Tool call ID that triggered this permission request
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_call_id: Option<String>,
@@ -9910,6 +9973,21 @@ pub enum PermissionRequestShellKind {
     #[serde(rename = "shell")]
     #[default]
     Shell,
+}
+
+/// Access a sandbox path grant confers
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PermissionSandboxPathGrantAccess {
+    /// Read access: the path is added to readonlyPaths.
+    #[serde(rename = "read")]
+    Read,
+    /// Read and write access: the path is added to readwritePaths.
+    #[serde(rename = "readWrite")]
+    ReadWrite,
+    /// Unknown variant for forward compatibility.
+    #[default]
+    #[serde(other)]
+    Unknown,
 }
 
 /// Permission kind discriminator

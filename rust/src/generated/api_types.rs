@@ -254,6 +254,8 @@ pub mod rpc_methods {
     pub const SESSION_SANDBOX_GETENFORCEMENTSTATUS: &str = "session.sandbox.getEnforcementStatus";
     /// `session.sandbox.disableForSession`
     pub const SESSION_SANDBOX_DISABLEFORSESSION: &str = "session.sandbox.disableForSession";
+    /// `session.sandbox.grantPathForRequest`
+    pub const SESSION_SANDBOX_GRANTPATHFORREQUEST: &str = "session.sandbox.grantPathForRequest";
     /// `session.sendSystemNotification`
     pub const SESSION_SENDSYSTEMNOTIFICATION: &str = "session.sendSystemNotification";
     /// `session.abort`
@@ -18170,6 +18172,39 @@ pub struct SandboxEnforcementStatus {
     pub required: bool,
 }
 
+/// Request to accept the sandbox path grant offered on an active sandbox escalation permission prompt.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SandboxGrantPathForRequestRequest {
+    /// Optional attribution for the permission decision.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub decision_context: Option<PermissionDecisionContext>,
+    /// Identifier of the exact pending sandbox escalation permission request whose sandboxPathGrant to accept.
+    pub request_id: RequestId,
+}
+
+/// Result of accepting a sandbox path grant.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SandboxGrantPathForRequestResult {
+    /// Whether this call resolved the pending request and added the path to the session's sandbox policy.
+    pub success: bool,
+}
+
 /// Whether this host can run one sandbox policy feature. A session whose effective policy uses an unsupported feature fails each sandboxed command with `reason`.
 ///
 /// <div class="warning">
@@ -27592,6 +27627,21 @@ pub struct SessionSandboxDisableForSessionResult {
     /// The authoritative sandbox enabled state after the operation.
     pub enabled: bool,
     /// Whether this call resolved the pending request and applied the session opt-out.
+    pub success: bool,
+}
+
+/// Result of accepting a sandbox path grant.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionSandboxGrantPathForRequestResult {
+    /// Whether this call resolved the pending request and added the path to the session's sandbox policy.
     pub success: bool,
 }
 

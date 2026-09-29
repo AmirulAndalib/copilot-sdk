@@ -8529,6 +8529,32 @@ internal sealed class SandboxDisableForSessionRequest
     public string SessionId { get; set; } = string.Empty;
 }
 
+/// <summary>Result of accepting a sandbox path grant.</summary>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+public sealed class SandboxGrantPathForRequestResult
+{
+    /// <summary>Whether this call resolved the pending request and added the path to the session's sandbox policy.</summary>
+    [JsonPropertyName("success")]
+    public bool Success { get; set; }
+}
+
+/// <summary>Request to accept the sandbox path grant offered on an active sandbox escalation permission prompt.</summary>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+internal sealed class SandboxGrantPathForRequestRequest
+{
+    /// <summary>Optional attribution for the permission decision.</summary>
+    [JsonPropertyName("decisionContext")]
+    public PermissionDecisionContext? DecisionContext { get; set; }
+
+    /// <summary>Identifier of the exact pending sandbox escalation permission request whose sandboxPathGrant to accept.</summary>
+    [JsonPropertyName("requestId")]
+    public string RequestId { get; set; } = string.Empty;
+
+    /// <summary>Target session identifier.</summary>
+    [JsonPropertyName("sessionId")]
+    public string SessionId { get; set; } = string.Empty;
+}
+
 /// <summary>Authentication status and account metadata for the session.</summary>
 [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed class SessionAuthStatus
@@ -41933,6 +41959,20 @@ public sealed class SandboxApi
         var request = new SandboxDisableForSessionRequest { SessionId = _session.SessionId, RequestId = requestId, DecisionContext = decisionContext };
         return await CopilotClient.InvokeRpcAsync<SandboxDisableForSessionResult>(_session.Rpc, "session.sandbox.disableForSession", [request], cancellationToken);
     }
+
+    /// <summary>Adds the path offered by a pending sandbox escalation permission request's sandboxPathGrant to the session's sandbox policy and approves the request, so the blocked operation re-runs inside the sandbox rather than outside it. The request is rejected unless the exact request is still pending, carries a sandboxPathGrant, and the grant still takes effect under the current managed policy. Does not persist the path; hosts that store sandbox settings save it themselves.</summary>
+    /// <param name="requestId">Identifier of the exact pending sandbox escalation permission request whose sandboxPathGrant to accept.</param>
+    /// <param name="decisionContext">Optional attribution for the permission decision.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> to monitor for cancellation requests. The default is <see cref="CancellationToken.None"/>.</param>
+    /// <returns>Result of accepting a sandbox path grant.</returns>
+    public async Task<SandboxGrantPathForRequestResult> GrantPathForRequestAsync(string requestId, PermissionDecisionContext? decisionContext = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(requestId);
+        _session.ThrowIfDisposed();
+
+        var request = new SandboxGrantPathForRequestRequest { SessionId = _session.SessionId, RequestId = requestId, DecisionContext = decisionContext };
+        return await CopilotClient.InvokeRpcAsync<SandboxGrantPathForRequestResult>(_session.Rpc, "session.sandbox.grantPathForRequest", [request], cancellationToken);
+    }
 }
 
 /// <summary>Provides session-scoped GitHubAuth APIs.</summary>
@@ -47399,6 +47439,8 @@ internal static class ClientGlobalApiRegistration
 [JsonSerializable(typeof(GitHub.Copilot.PermissionRequestedEvent), TypeInfoPropertyName = "SessionEventsPermissionRequestedEvent")]
 [JsonSerializable(typeof(GitHub.Copilot.PermissionResult), TypeInfoPropertyName = "SessionEventsPermissionResult")]
 [JsonSerializable(typeof(GitHub.Copilot.PermissionRule), TypeInfoPropertyName = "SessionEventsPermissionRule")]
+[JsonSerializable(typeof(GitHub.Copilot.PermissionSandboxPathGrant), TypeInfoPropertyName = "SessionEventsPermissionSandboxPathGrant")]
+[JsonSerializable(typeof(GitHub.Copilot.PermissionSandboxPathGrantAccess), TypeInfoPropertyName = "SessionEventsPermissionSandboxPathGrantAccess")]
 [JsonSerializable(typeof(GitHub.Copilot.PersistedBinaryImage), TypeInfoPropertyName = "SessionEventsPersistedBinaryImage")]
 [JsonSerializable(typeof(GitHub.Copilot.PersistedBinaryImageType), TypeInfoPropertyName = "SessionEventsPersistedBinaryImageType")]
 [JsonSerializable(typeof(GitHub.Copilot.PersistedBinaryResult), TypeInfoPropertyName = "SessionEventsPersistedBinaryResult")]
@@ -48180,6 +48222,8 @@ internal static class ClientGlobalApiRegistration
 [JsonSerializable(typeof(SandboxDisableForSessionRequest))]
 [JsonSerializable(typeof(SandboxDisableForSessionResult))]
 [JsonSerializable(typeof(SandboxEnforcementStatus))]
+[JsonSerializable(typeof(SandboxGrantPathForRequestRequest))]
+[JsonSerializable(typeof(SandboxGrantPathForRequestResult))]
 [JsonSerializable(typeof(SandboxHostCapability))]
 [JsonSerializable(typeof(SandboxHostSupport))]
 [JsonSerializable(typeof(ScheduleAddAtRequest))]

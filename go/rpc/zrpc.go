@@ -12730,6 +12730,27 @@ type SandboxEnforcementStatus struct {
 	Required bool `json:"required"`
 }
 
+// Request to accept the sandbox path grant offered on an active sandbox escalation
+// permission prompt.
+// Experimental: SandboxGrantPathForRequestRequest is part of an experimental API and may
+// change or be removed.
+type SandboxGrantPathForRequestRequest struct {
+	// Optional attribution for the permission decision.
+	DecisionContext *PermissionDecisionContext `json:"decisionContext,omitempty"`
+	// Identifier of the exact pending sandbox escalation permission request whose
+	// sandboxPathGrant to accept.
+	RequestID string `json:"requestId"`
+}
+
+// Result of accepting a sandbox path grant.
+// Experimental: SandboxGrantPathForRequestResult is part of an experimental API and may
+// change or be removed.
+type SandboxGrantPathForRequestResult struct {
+	// Whether this call resolved the pending request and added the path to the session's
+	// sandbox policy.
+	Success bool `json:"success"`
+}
+
 // Whether this host can run one sandbox policy feature. A session whose effective policy
 // uses an unsupported feature fails each sandboxed command with `reason`.
 // Experimental: SandboxHostCapability is part of an experimental API and may change or be
@@ -32525,6 +32546,38 @@ func (a *SandboxAPI) GetEnforcementStatus(ctx context.Context) (*SandboxEnforcem
 		return nil, err
 	}
 	var result SandboxEnforcementStatus
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// GrantPathForRequest adds the path offered by a pending sandbox escalation permission
+// request's sandboxPathGrant to the session's sandbox policy and approves the request, so
+// the blocked operation re-runs inside the sandbox rather than outside it. The request is
+// rejected unless the exact request is still pending, carries a sandboxPathGrant, and the
+// grant still takes effect under the current managed policy. Does not persist the path;
+// hosts that store sandbox settings save it themselves.
+//
+// RPC method: session.sandbox.grantPathForRequest.
+//
+// Parameters: Request to accept the sandbox path grant offered on an active sandbox
+// escalation permission prompt.
+//
+// Returns: Result of accepting a sandbox path grant.
+func (a *SandboxAPI) GrantPathForRequest(ctx context.Context, params *SandboxGrantPathForRequestRequest) (*SandboxGrantPathForRequestResult, error) {
+	req := map[string]any{"sessionId": a.sessionID}
+	if params != nil {
+		if params.DecisionContext != nil {
+			req["decisionContext"] = *params.DecisionContext
+		}
+		req["requestId"] = params.RequestID
+	}
+	raw, err := a.client.Request(ctx, "session.sandbox.grantPathForRequest", req)
+	if err != nil {
+		return nil, err
+	}
+	var result SandboxGrantPathForRequestResult
 	if err := json.Unmarshal(raw, &result); err != nil {
 		return nil, err
 	}

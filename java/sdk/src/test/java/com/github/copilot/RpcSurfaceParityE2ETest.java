@@ -41,8 +41,8 @@ class RpcSurfaceParityE2ETest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final long TIMEOUT_SECONDS = 30;
-    private static final int EXPECTED_RPC_METHOD_COUNT = 440;
-    private static final String EXPECTED_RPC_SIGNATURE_SHA256 = "ba2205f94be05f808734e5f7bd5ba0ce18d7816c68395bff90415fd97574936b";
+    private static final int EXPECTED_RPC_METHOD_COUNT = 441;
+    private static final String EXPECTED_RPC_SIGNATURE_SHA256 = "39b0aced7a065761af54df5e2cc728b218981c68b8b4933b369e56a6eed9259a";
     private static final Map<String, Integer> EXPECTED_METHODS_BY_DECLARING_TYPE = Map.ofEntries(
             Map.entry("RpcCaller", 2), Map.entry("ServerAccountApi", 6), Map.entry("ServerAccountsApi", 1),
             Map.entry("ServerAgentRegistryApi", 1), Map.entry("ServerAgentsApi", 2), Map.entry("ServerCatalogApi", 3),
@@ -75,7 +75,7 @@ class RpcSurfaceParityE2ETest {
             Map.entry("SessionPermissionsUrlsApi", 1), Map.entry("SessionPlanApi", 5),
             Map.entry("SessionPluginsApi", 8), Map.entry("SessionPluginsMarketplacesApi", 6),
             Map.entry("SessionProviderApi", 4), Map.entry("SessionQueueApi", 20), Map.entry("SessionRemoteApi", 3),
-            Map.entry("SessionRpc", 9), Map.entry("SessionSandboxApi", 2), Map.entry("SessionScheduleApi", 9),
+            Map.entry("SessionRpc", 9), Map.entry("SessionSandboxApi", 3), Map.entry("SessionScheduleApi", 9),
             Map.entry("SessionSettingsApi", 2), Map.entry("SessionShellApi", 4), Map.entry("SessionSkillsApi", 6),
             Map.entry("SessionTasksApi", 13), Map.entry("SessionTelemetryApi", 2), Map.entry("SessionToolsApi", 8),
             Map.entry("SessionUiApi", 10), Map.entry("SessionUsageApi", 1), Map.entry("SessionVisibilityApi", 2),
@@ -207,6 +207,7 @@ class RpcSurfaceParityE2ETest {
         rpc.remote.notifySteerableChanged(params(SessionRemoteNotifySteerableChangedParams.class, "{}"));
         rpc.sandbox.getEnforcementStatus();
         rpc.sandbox.disableForSession(params(SessionSandboxDisableForSessionParams.class, "{}"));
+        rpc.sandbox.grantPathForRequest(params(SessionSandboxGrantPathForRequestParams.class, "{}"));
         rpc.settings.snapshot();
         rpc.settings.evaluatePredicate(params(SessionSettingsEvaluatePredicateParams.class, "{}"));
         rpc.shell.exec(params(SessionShellExecParams.class, "{}"));
@@ -282,7 +283,7 @@ class RpcSurfaceParityE2ETest {
         rpc.workspaces.saveLargePaste(params(SessionWorkspacesSaveLargePasteParams.class, "{}"));
         rpc.workspaces.diff(params(SessionWorkspacesDiffParams.class, "{}"));
 
-        assertEquals(104, caller.calls().size());
+        assertEquals(105, caller.calls().size());
         assertTrue(caller.calls().stream().allMatch(call -> call.method().startsWith("session.")));
         assertTrue(caller.calls().stream().allMatch(
                 call -> "direct-session".equals(MAPPER.valueToTree(call.params()).path("sessionId").asText())));
@@ -291,11 +292,11 @@ class RpcSurfaceParityE2ETest {
         assertTrue(methods.containsAll(Set.of("session.permissions.paths.list",
                 "session.permissions.urls.setUnrestrictedMode", "session.plan.readSqlTodosWithDependencies",
                 "session.provider.add", "session.queue.process", "session.remote.notifySteerableChanged",
-                "session.sandbox.disableForSession", "session.settings.evaluatePredicate",
-                "session.shell.cancelUserRequested", "session.skills.ensureLoaded", "session.tasks.sendMessage",
-                "session.telemetry.setFeatureOverrides", "session.tools.updateSubagentSettings",
-                "session.ui.unregisterDirectAutoModeSwitchHandler", "session.visibility.set",
-                "session.workspaces.diff")));
+                "session.sandbox.disableForSession", "session.sandbox.grantPathForRequest",
+                "session.settings.evaluatePredicate", "session.shell.cancelUserRequested",
+                "session.skills.ensureLoaded", "session.tasks.sendMessage", "session.telemetry.setFeatureOverrides",
+                "session.tools.updateSubagentSettings", "session.ui.unregisterDirectAutoModeSwitchHandler",
+                "session.visibility.set", "session.workspaces.diff")));
     }
 
     @Test
@@ -608,6 +609,12 @@ class RpcSurfaceParityE2ETest {
                 assertTrue(disabled.success());
                 assertFalse(disabled.enabled());
 
+                var granted = rpc.sandbox
+                        .grantPathForRequest(
+                                new SessionSandboxGrantPathForRequestParams(null, "sandbox-request-2", null))
+                        .get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                assertTrue(granted.success());
+
                 assertTrue(rpc.abort(new SessionAbortParams(null, AbortReason.USER_INITIATED))
                         .get(TIMEOUT_SECONDS, TimeUnit.SECONDS).success());
                 assertTrue(rpc.interruptMainTurn(new SessionInterruptMainTurnParams(null, true))
@@ -624,8 +631,8 @@ class RpcSurfaceParityE2ETest {
                         "session.debug.collectLogs", "session.history.clearContext", "session.limitPrediction.predict",
                         "session.metadata.getClientMetadata", "session.model.setAllowedModels",
                         "session.model.switchAutoTier", "session.sandbox.getEnforcementStatus",
-                        "session.sandbox.disableForSession", "session.abort", "session.interruptMainTurn",
-                        "session.cancelAllBackgroundAgents", "session.log");
+                        "session.sandbox.disableForSession", "session.sandbox.grantPathForRequest", "session.abort",
+                        "session.interruptMainTurn", "session.cancelAllBackgroundAgents", "session.log");
                 assertEquals(session.getSessionId(), parameters(runtime, "session.log").path("sessionId").asText());
                 assertTrue(parameters(runtime, "session.interruptMainTurn").path("flushQueued").asBoolean());
             }
@@ -901,6 +908,9 @@ class RpcSurfaceParityE2ETest {
                     """);
             case "session.sandbox.disableForSession" -> json("""
                     {"success":true,"enabled":false}
+                    """);
+            case "session.sandbox.grantPathForRequest" -> json("""
+                    {"success":true}
                     """);
             case "session.abort" -> json("""
                     {"success":true,"error":null}

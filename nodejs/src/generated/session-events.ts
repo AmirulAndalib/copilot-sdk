@@ -1132,6 +1132,14 @@ export type PermissionRequest =
   | PermissionRequestExtensionPermissionAccess
   | PermissionRequestExtensionEnvAccess;
 /**
+ * Access a sandbox path grant confers
+ */
+export type PermissionSandboxPathGrantAccess =
+  /** Read access: the path is added to readonlyPaths. */
+  | "read"
+  /** Read and write access: the path is added to readwritePaths. */
+  | "readWrite";
+/**
  * Advisory recommendation the runtime attaches to a permission request whose origin it can vouch for by construction. Unlike the auto-approval judge this does not depend on auto mode and does not evaluate what the tool call does; its absence simply means the runtime has no opinion and the request follows the host's normal approval flow.
  */
 /** @experimental */
@@ -8766,6 +8774,12 @@ export interface PermissionRequestShell {
    */
   resolvedWorkingDirectory?: string;
   /**
+   * Sandbox policy edit that would let the command run inside the sandbox. Only present when requestSandboxBypass is true.
+   *
+   * @experimental
+   */
+  sandboxPathGrant?: PermissionSandboxPathGrant;
+  /**
    * Tool call ID that triggered this permission request
    */
   toolCallId?: string;
@@ -8808,6 +8822,25 @@ export interface PermissionRequestShellPossibleUrl {
    * URL that may be accessed by the command
    */
   url: string;
+}
+/**
+ * A sandbox filesystem policy edit that would let a blocked operation run inside the sandbox instead of outside it. Offered only on a sandbox escalation request whose denial adding this path lifts, and only when managed policy permits the grant. A host accepts it with session.sandbox.grantPathForRequest, which adds the path to the session's sandbox policy and re-runs the operation sandboxed; a host that persists sandbox settings may also save the path there.
+ */
+/** @experimental */
+export interface PermissionSandboxPathGrant {
+  access: PermissionSandboxPathGrantAccess;
+  /**
+   * The path the sandbox refused, present only when it differs from path. That happens when a write under a read-only folder moves the folder to the read-write paths, when a path that does not exist yet is granted through its nearest existing folder, because the OS sandbox cannot grant a path before it exists, and when either is spelled through a symlink, because a grant covers its path as written, so path is then the resolved location. Hosts should then name path in the offer, since the denial names this one.
+   */
+  deniedPath?: string;
+  /**
+   * Absolute path to add to the sandbox filesystem policy
+   */
+  path: string;
+  /**
+   * readonlyPaths entries the grant removes, exactly as written in the policy, because a read-only entry for the same location would otherwise keep the path read-only. A host that persists the path must remove these entries from its stored readonlyPaths too.
+   */
+  removedReadonlyPaths?: string[];
 }
 /**
  * File write permission request
@@ -8856,6 +8889,12 @@ export interface PermissionRequestWrite {
    */
   resolvedPath?: string;
   /**
+   * Sandbox policy edit that would let the write run inside the sandbox. Only present when requestSandboxBypass is true.
+   *
+   * @experimental
+   */
+  sandboxPathGrant?: PermissionSandboxPathGrant;
+  /**
    * Tool call ID that triggered this permission request
    */
   toolCallId?: string;
@@ -8894,6 +8933,12 @@ export interface PermissionRequestRead {
    * @experimental
    */
   resolvedPath?: string;
+  /**
+   * Sandbox policy edit that would let the read run inside the sandbox. Only present when requestSandboxBypass is true.
+   *
+   * @experimental
+   */
+  sandboxPathGrant?: PermissionSandboxPathGrant;
   /**
    * Tool call ID that triggered this permission request
    */
@@ -9374,6 +9419,12 @@ export interface PermissionPromptRequestCommands {
    * True when the escalation is a permissive retry that keeps the sandbox and network policy attached while recording file and process accesses instead of blocking them.
    */
   requestSandboxPermissive?: boolean;
+  /**
+   * Sandbox policy edit that would let the command run inside the sandbox. Only present when requestSandboxBypass is true.
+   *
+   * @experimental
+   */
+  sandboxPathGrant?: PermissionSandboxPathGrant;
   /**
    * Tool call ID that triggered this permission request
    */

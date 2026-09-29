@@ -1692,6 +1692,40 @@ class PermissionMessageAuthorizationReadData:
 
 # Experimental: this type is part of an experimental API and may change or be removed.
 @dataclass
+class PermissionSandboxPathGrant:
+    "A sandbox filesystem policy edit that would let a blocked operation run inside the sandbox instead of outside it. Offered only on a sandbox escalation request whose denial adding this path lifts, and only when managed policy permits the grant. A host accepts it with session.sandbox.grantPathForRequest, which adds the path to the session's sandbox policy and re-runs the operation sandboxed; a host that persists sandbox settings may also save the path there."
+    access: PermissionSandboxPathGrantAccess
+    path: str
+    denied_path: str | None = None
+    removed_readonly_paths: list[str] | None = None
+
+    @staticmethod
+    def from_dict(obj: Any) -> "PermissionSandboxPathGrant":
+        assert isinstance(obj, dict)
+        access = parse_enum(PermissionSandboxPathGrantAccess, obj.get("access"))
+        path = from_str(obj.get("path"))
+        denied_path = from_union([from_none, from_str], obj.get("deniedPath"))
+        removed_readonly_paths = from_union([from_none, lambda x: from_list(from_str, x)], obj.get("removedReadonlyPaths"))
+        return PermissionSandboxPathGrant(
+            access=access,
+            path=path,
+            denied_path=denied_path,
+            removed_readonly_paths=removed_readonly_paths,
+        )
+
+    def to_dict(self) -> dict:
+        result: dict = {}
+        result["access"] = to_enum(PermissionSandboxPathGrantAccess, self.access)
+        result["path"] = from_str(self.path)
+        if self.denied_path is not None:
+            result["deniedPath"] = from_union([from_none, from_str], self.denied_path)
+        if self.removed_readonly_paths is not None:
+            result["removedReadonlyPaths"] = from_union([from_none, lambda x: from_list(from_str, x)], self.removed_readonly_paths)
+        return result
+
+
+# Experimental: this type is part of an experimental API and may change or be removed.
+@dataclass
 class SessionAutoModeResolvedData:
     "Auto Intent resolution: the concrete model the session settled on for the first prompt of an auto-mode session, and why. Lets SDK clients render the chosen model and the full reason it was picked. The core selection fields (chosenModel/reasoningBucket/categoryScores) are stable; the routing-analytics fields (predictedLabel/confidence/candidateModels) mirror the upstream intent service and may evolve, hence the event's experimental stability."
     chosen_model: str
@@ -6479,6 +6513,8 @@ class PermissionPromptRequestCommands:
     request_sandbox_permissive: bool | None = None
     tool_call_id: str | None = None
     warning: str | None = None
+    # Experimental: this field is part of an experimental API and may change or be removed.
+    sandbox_path_grant: PermissionSandboxPathGrant | None = None
 
     @staticmethod
     def from_dict(obj: Any) -> "PermissionPromptRequestCommands":
@@ -6494,6 +6530,7 @@ class PermissionPromptRequestCommands:
         request_sandbox_permissive = from_union([from_none, from_bool], obj.get("requestSandboxPermissive"))
         tool_call_id = from_union([from_none, from_str], obj.get("toolCallId"))
         warning = from_union([from_none, from_str], obj.get("warning"))
+        sandbox_path_grant = from_union([from_none, PermissionSandboxPathGrant.from_dict], obj.get("sandboxPathGrant"))
         return PermissionPromptRequestCommands(
             can_offer_session_approval=can_offer_session_approval,
             command_identifiers=command_identifiers,
@@ -6506,6 +6543,7 @@ class PermissionPromptRequestCommands:
             request_sandbox_permissive=request_sandbox_permissive,
             tool_call_id=tool_call_id,
             warning=warning,
+            sandbox_path_grant=sandbox_path_grant,
         )
 
     def to_dict(self) -> dict:
@@ -6529,6 +6567,8 @@ class PermissionPromptRequestCommands:
             result["toolCallId"] = from_union([from_none, from_str], self.tool_call_id)
         if self.warning is not None:
             result["warning"] = from_union([from_none, from_str], self.warning)
+        if self.sandbox_path_grant is not None:
+            result["sandboxPathGrant"] = from_union([from_none, lambda x: to_class(PermissionSandboxPathGrant, x)], self.sandbox_path_grant)
         return result
 
 
@@ -7549,6 +7589,8 @@ class PermissionRequestRead:
     tool_call_id: str | None = None
     # Experimental: this field is part of an experimental API and may change or be removed.
     resolved_path: str | None = None
+    # Experimental: this field is part of an experimental API and may change or be removed.
+    sandbox_path_grant: PermissionSandboxPathGrant | None = None
 
     @staticmethod
     def from_dict(obj: Any) -> "PermissionRequestRead":
@@ -7560,6 +7602,7 @@ class PermissionRequestRead:
         request_sandbox_bypass_reason = from_union([from_none, from_str], obj.get("requestSandboxBypassReason"))
         tool_call_id = from_union([from_none, from_str], obj.get("toolCallId"))
         resolved_path = from_union([from_none, from_str], obj.get("resolvedPath"))
+        sandbox_path_grant = from_union([from_none, PermissionSandboxPathGrant.from_dict], obj.get("sandboxPathGrant"))
         return PermissionRequestRead(
             intention=intention,
             path=path,
@@ -7568,6 +7611,7 @@ class PermissionRequestRead:
             request_sandbox_bypass_reason=request_sandbox_bypass_reason,
             tool_call_id=tool_call_id,
             resolved_path=resolved_path,
+            sandbox_path_grant=sandbox_path_grant,
         )
 
     def to_dict(self) -> dict:
@@ -7585,6 +7629,8 @@ class PermissionRequestRead:
             result["toolCallId"] = from_union([from_none, from_str], self.tool_call_id)
         if self.resolved_path is not None:
             result["resolvedPath"] = from_union([from_none, from_str], self.resolved_path)
+        if self.sandbox_path_grant is not None:
+            result["sandboxPathGrant"] = from_union([from_none, lambda x: to_class(PermissionSandboxPathGrant, x)], self.sandbox_path_grant)
         return result
 
 
@@ -7610,6 +7656,8 @@ class PermissionRequestShell:
     resolved_working_directory: str | None = None
     tool_call_id: str | None = None
     warning: str | None = None
+    # Experimental: this field is part of an experimental API and may change or be removed.
+    sandbox_path_grant: PermissionSandboxPathGrant | None = None
 
     @staticmethod
     def from_dict(obj: Any) -> "PermissionRequestShell":
@@ -7630,6 +7678,7 @@ class PermissionRequestShell:
         resolved_working_directory = from_union([from_none, from_str], obj.get("resolvedWorkingDirectory"))
         tool_call_id = from_union([from_none, from_str], obj.get("toolCallId"))
         warning = from_union([from_none, from_str], obj.get("warning"))
+        sandbox_path_grant = from_union([from_none, PermissionSandboxPathGrant.from_dict], obj.get("sandboxPathGrant"))
         return PermissionRequestShell(
             can_offer_session_approval=can_offer_session_approval,
             commands=commands,
@@ -7647,6 +7696,7 @@ class PermissionRequestShell:
             resolved_working_directory=resolved_working_directory,
             tool_call_id=tool_call_id,
             warning=warning,
+            sandbox_path_grant=sandbox_path_grant,
         )
 
     def to_dict(self) -> dict:
@@ -7677,6 +7727,8 @@ class PermissionRequestShell:
             result["toolCallId"] = from_union([from_none, from_str], self.tool_call_id)
         if self.warning is not None:
             result["warning"] = from_union([from_none, from_str], self.warning)
+        if self.sandbox_path_grant is not None:
+            result["sandboxPathGrant"] = from_union([from_none, lambda x: to_class(PermissionSandboxPathGrant, x)], self.sandbox_path_grant)
         return result
 
 
@@ -7901,6 +7953,8 @@ class PermissionRequestWrite:
     # Experimental: this field is part of an experimental API and may change or be removed.
     resolved_path: str | None = None
     tool_call_id: str | None = None
+    # Experimental: this field is part of an experimental API and may change or be removed.
+    sandbox_path_grant: PermissionSandboxPathGrant | None = None
 
     @staticmethod
     def from_dict(obj: Any) -> "PermissionRequestWrite":
@@ -7915,6 +7969,7 @@ class PermissionRequestWrite:
         request_sandbox_bypass_reason = from_union([from_none, from_str], obj.get("requestSandboxBypassReason"))
         resolved_path = from_union([from_none, from_str], obj.get("resolvedPath"))
         tool_call_id = from_union([from_none, from_str], obj.get("toolCallId"))
+        sandbox_path_grant = from_union([from_none, PermissionSandboxPathGrant.from_dict], obj.get("sandboxPathGrant"))
         return PermissionRequestWrite(
             can_offer_session_approval=can_offer_session_approval,
             diff=diff,
@@ -7926,6 +7981,7 @@ class PermissionRequestWrite:
             request_sandbox_bypass_reason=request_sandbox_bypass_reason,
             resolved_path=resolved_path,
             tool_call_id=tool_call_id,
+            sandbox_path_grant=sandbox_path_grant,
         )
 
     def to_dict(self) -> dict:
@@ -7947,6 +8003,8 @@ class PermissionRequestWrite:
             result["resolvedPath"] = from_union([from_none, from_str], self.resolved_path)
         if self.tool_call_id is not None:
             result["toolCallId"] = from_union([from_none, from_str], self.tool_call_id)
+        if self.sandbox_path_grant is not None:
+            result["sandboxPathGrant"] = from_union([from_none, lambda x: to_class(PermissionSandboxPathGrant, x)], self.sandbox_path_grant)
         return result
 
 
@@ -14182,6 +14240,14 @@ class PermissionRequestMemoryScope(Enum):
     USER = "user"
 
 
+class PermissionSandboxPathGrantAccess(Enum):
+    "Access a sandbox path grant confers"
+    # Read access: the path is added to readonlyPaths.
+    READ = "read"
+    # Read and write access: the path is added to readwritePaths.
+    READ_WRITE = "readWrite"
+
+
 class PersistedBinaryImageType(Enum):
     "Binary result type discriminator. Use \"image\" for images and \"resource\" for other binary data."
     # Binary image data.
@@ -15126,6 +15192,8 @@ __all__ = [
     "PermissionRequestedData",
     "PermissionResult",
     "PermissionRule",
+    "PermissionSandboxPathGrant",
+    "PermissionSandboxPathGrantAccess",
     "PersistedBinaryImage",
     "PersistedBinaryImageType",
     "PersistedBinaryResult",

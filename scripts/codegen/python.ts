@@ -268,6 +268,25 @@ function preservePythonSessionEventConstructorOrder(schema: JSONSchema7): void {
                 (resolvedPath as Record<string, unknown>)["x-copilot-sdk-append-last"] = true;
             }
         }
+
+        // Added after these constructors were published; sorting it with the
+        // other optional fields would shift `tool_call_id` and `warning` for
+        // positional callers.
+        for (const name of [
+            "PermissionPromptRequestCommands",
+            "PermissionRequestRead",
+            "PermissionRequestShell",
+            "PermissionRequestWrite",
+        ]) {
+            const definition = definitions[name];
+            const sandboxPathGrant =
+                definition && typeof definition === "object"
+                    ? (definition as JSONSchema7).properties?.sandboxPathGrant
+                    : undefined;
+            if (sandboxPathGrant && typeof sandboxPathGrant === "object") {
+                (sandboxPathGrant as Record<string, unknown>)["x-copilot-sdk-append-last"] = true;
+            }
+        }
     }
 }
 
