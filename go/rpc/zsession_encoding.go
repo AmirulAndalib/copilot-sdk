@@ -2399,6 +2399,12 @@ func unmarshalPermissionResult(data []byte) (PermissionResult, error) {
 			return nil, err
 		}
 		return &d, nil
+	case PermissionResultKindApprovedReadOnlyForSession:
+		var d PermissionApprovedReadOnlyForSession
+		if err := json.Unmarshal(data, &d); err != nil {
+			return nil, err
+		}
+		return &d, nil
 	case PermissionResultKindCancelled:
 		var d PermissionCancelled
 		if err := json.Unmarshal(data, &d); err != nil {
@@ -2517,6 +2523,17 @@ func (r *PermissionApprovedForSession) UnmarshalJSON(data []byte) error {
 
 func (r PermissionApprovedForSession) MarshalJSON() ([]byte, error) {
 	type alias PermissionApprovedForSession
+	return json.Marshal(struct {
+		Kind PermissionResultKind `json:"kind"`
+		alias
+	}{
+		Kind:  r.Kind(),
+		alias: alias(r),
+	})
+}
+
+func (r PermissionApprovedReadOnlyForSession) MarshalJSON() ([]byte, error) {
+	type alias PermissionApprovedReadOnlyForSession
 	return json.Marshal(struct {
 		Kind PermissionResultKind `json:"kind"`
 		alias

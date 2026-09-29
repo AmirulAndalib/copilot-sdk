@@ -1252,6 +1252,7 @@ export type PermissionDecisionSource =
  */
 export type PermissionResult =
   | PermissionApproved
+  | PermissionApprovedReadOnlyForSession
   | PermissionApprovedForSession
   | PermissionApprovedForLocation
   | PermissionCancelled
@@ -9696,6 +9697,12 @@ export interface PermissionPromptRequestPath {
    */
   paths: string[];
   /**
+   * Canonical directory candidates that can be granted for file-tool read access in this logical session. Present only for read path prompts.
+   *
+   * @experimental
+   */
+  readOnlyDirectories?: string[];
+  /**
    * Tool call ID that triggered this permission request
    */
   toolCallId?: string;
@@ -9957,6 +9964,21 @@ export interface PermissionApproved {
    * Whether a managed approval policy already handled this request
    */
   managedApprovalHandled?: boolean;
+}
+/**
+ * Permission response variant that approves a request and records file-tool read authority for specific directories in this logical session.
+ */
+export interface PermissionApprovedReadOnlyForSession {
+  /**
+   * Canonical directories covered by the session read-only grant
+   *
+   * @minItems 1
+   */
+  directories: [string, ...string[]];
+  /**
+   * Approved with read-only directory authority for this session
+   */
+  kind: "approved-read-only-for-session";
 }
 /**
  * Permission response variant that approves a request and remembers the provided approval for the rest of the session.

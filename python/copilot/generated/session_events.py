@@ -6315,6 +6315,27 @@ class PermissionApprovedForSession:
 
 
 @dataclass
+class PermissionApprovedReadOnlyForSession:
+    "Permission response variant that approves a request and records file-tool read authority for specific directories in this logical session."
+    directories: list[str]
+    kind: ClassVar[str] = "approved-read-only-for-session"
+
+    @staticmethod
+    def from_dict(obj: Any) -> "PermissionApprovedReadOnlyForSession":
+        assert isinstance(obj, dict)
+        directories = from_list(from_str, obj.get("directories"))
+        return PermissionApprovedReadOnlyForSession(
+            directories=directories,
+        )
+
+    def to_dict(self) -> dict:
+        result: dict = {}
+        result["directories"] = from_list(from_str, self.directories)
+        result["kind"] = self.kind
+        return result
+
+
+@dataclass
 class PermissionCancelled:
     "Permission response variant indicating the request was cancelled before use, with an optional reason."
     kind: ClassVar[str] = "cancelled"
@@ -6885,6 +6906,8 @@ class PermissionPromptRequestPath:
     paths: list[str]
     # Experimental: this field is part of an experimental API and may change or be removed.
     assisted_approval: PermissionAssistedApproval | None = None
+    # Experimental: this field is part of an experimental API and may change or be removed.
+    read_only_directories: list[str] | None = None
     tool_call_id: str | None = None
 
     @staticmethod
@@ -6893,11 +6916,13 @@ class PermissionPromptRequestPath:
         access_kind = parse_enum(PermissionPromptRequestPathAccessKind, obj.get("accessKind"))
         paths = from_list(from_str, obj.get("paths"))
         assisted_approval = from_union([from_none, PermissionAssistedApproval.from_dict], obj.get("assistedApproval"))
+        read_only_directories = from_union([from_none, lambda x: from_list(from_str, x)], obj.get("readOnlyDirectories"))
         tool_call_id = from_union([from_none, from_str], obj.get("toolCallId"))
         return PermissionPromptRequestPath(
             access_kind=access_kind,
             paths=paths,
             assisted_approval=assisted_approval,
+            read_only_directories=read_only_directories,
             tool_call_id=tool_call_id,
         )
 
@@ -6908,6 +6933,8 @@ class PermissionPromptRequestPath:
         result["paths"] = from_list(from_str, self.paths)
         if self.assisted_approval is not None:
             result["assistedApproval"] = from_union([from_none, lambda x: to_class(PermissionAssistedApproval, x)], self.assisted_approval)
+        if self.read_only_directories is not None:
+            result["readOnlyDirectories"] = from_union([from_none, lambda x: from_list(from_str, x)], self.read_only_directories)
         if self.tool_call_id is not None:
             result["toolCallId"] = from_union([from_none, from_str], self.tool_call_id)
         return result
@@ -13191,6 +13218,7 @@ def _load_PermissionResult(obj: Any) -> "PermissionResult":
     kind = obj.get("kind")
     match kind:
         case "approved": return PermissionApproved.from_dict(obj)
+        case "approved-read-only-for-session": return PermissionApprovedReadOnlyForSession.from_dict(obj)
         case "approved-for-session": return PermissionApprovedForSession.from_dict(obj)
         case "approved-for-location": return PermissionApprovedForLocation.from_dict(obj)
         case "cancelled": return PermissionCancelled.from_dict(obj)
@@ -13285,7 +13313,7 @@ ToolExecutionCompleteContentResourceDetails = EmbeddedTextResourceContents | Emb
 
 
 # The result of the permission request
-PermissionResult = PermissionApproved | PermissionApprovedForSession | PermissionApprovedForLocation | PermissionCancelled | PermissionDeniedByRules | PermissionDeniedNoApprovalRuleAndCouldNotRequestFromUser | PermissionDeniedInteractivelyByUser | PermissionDeniedByContentExclusionPolicy | PermissionDeniedByPermissionRequestHook
+PermissionResult = PermissionApproved | PermissionApprovedReadOnlyForSession | PermissionApprovedForSession | PermissionApprovedForLocation | PermissionCancelled | PermissionDeniedByRules | PermissionDeniedNoApprovalRuleAndCouldNotRequestFromUser | PermissionDeniedInteractivelyByUser | PermissionDeniedByContentExclusionPolicy | PermissionDeniedByPermissionRequestHook
 
 
 # Experimental: this enum is part of an experimental API and may change or be removed.
@@ -15129,6 +15157,7 @@ __all__ = [
     "PermissionApproved",
     "PermissionApprovedForLocation",
     "PermissionApprovedForSession",
+    "PermissionApprovedReadOnlyForSession",
     "PermissionAssentDetectedData",
     "PermissionAssistedApproval",
     "PermissionCancelled",

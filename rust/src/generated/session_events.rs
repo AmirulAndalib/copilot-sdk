@@ -6153,6 +6153,16 @@ pub struct PermissionPromptRequestPath {
     pub kind: PermissionPromptRequestPathKind,
     /// File paths that require explicit approval
     pub paths: Vec<String>,
+    /// Canonical directory candidates that can be granted for file-tool read access in this logical session. Present only for read path prompts.
+    ///
+    /// <div class="warning">
+    ///
+    /// **Experimental.** This type is part of an experimental wire-protocol surface
+    /// and may change or be removed in future SDK or CLI releases.
+    ///
+    /// </div>
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub read_only_directories: Option<Vec<String>>,
     /// Tool call ID that triggered this permission request
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_call_id: Option<String>,
@@ -6360,6 +6370,16 @@ pub struct PermissionApproved {
     /// Whether a managed approval policy already handled this request
     #[serde(skip_serializing_if = "Option::is_none")]
     pub managed_approval_handled: Option<bool>,
+}
+
+/// Permission response variant that approves a request and records file-tool read authority for specific directories in this logical session.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PermissionApprovedReadOnlyForSession {
+    /// Canonical directories covered by the session read-only grant
+    pub directories: Vec<String>,
+    /// Approved with read-only directory authority for this session
+    pub kind: PermissionApprovedReadOnlyForSessionKind,
 }
 
 /// Session-scoped tool-approval rule for specific shell command identifiers.
@@ -10545,6 +10565,14 @@ pub enum PermissionApprovedKind {
     Approved,
 }
 
+/// Approved with read-only directory authority for this session
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PermissionApprovedReadOnlyForSessionKind {
+    #[serde(rename = "approved-read-only-for-session")]
+    #[default]
+    ApprovedReadOnlyForSession,
+}
+
 /// Command approval kind
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum UserToolSessionApprovalCommandsKind {
@@ -10710,6 +10738,7 @@ pub enum PermissionDeniedByPermissionRequestHookKind {
 #[serde(untagged)]
 pub enum PermissionResult {
     Approved(PermissionApproved),
+    ApprovedReadOnlyForSession(PermissionApprovedReadOnlyForSession),
     ApprovedForSession(PermissionApprovedForSession),
     ApprovedForLocation(PermissionApprovedForLocation),
     Cancelled(PermissionCancelled),

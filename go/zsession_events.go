@@ -194,6 +194,7 @@ type (
 	PermissionApproved                                             = rpc.PermissionApproved
 	PermissionApprovedForLocation                                  = rpc.PermissionApprovedForLocation
 	PermissionApprovedForSession                                   = rpc.PermissionApprovedForSession
+	PermissionApprovedReadOnlyForSession                           = rpc.PermissionApprovedReadOnlyForSession
 	PermissionAssentDetectedData                                   = rpc.PermissionAssentDetectedData
 	PermissionAssistedApproval                                     = rpc.PermissionAssistedApproval
 	PermissionCancelled                                            = rpc.PermissionCancelled
@@ -802,6 +803,7 @@ const (
 	PermissionResultKindApproved                                         = rpc.PermissionResultKindApproved
 	PermissionResultKindApprovedForLocation                              = rpc.PermissionResultKindApprovedForLocation
 	PermissionResultKindApprovedForSession                               = rpc.PermissionResultKindApprovedForSession
+	PermissionResultKindApprovedReadOnlyForSession                       = rpc.PermissionResultKindApprovedReadOnlyForSession
 	PermissionResultKindCancelled                                        = rpc.PermissionResultKindCancelled
 	PermissionResultKindDeniedByContentExclusionPolicy                   = rpc.PermissionResultKindDeniedByContentExclusionPolicy
 	PermissionResultKindDeniedByPermissionRequestHook                    = rpc.PermissionResultKindDeniedByPermissionRequestHook

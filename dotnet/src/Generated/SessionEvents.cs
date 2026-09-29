@@ -11376,6 +11376,12 @@ public sealed partial class PermissionPromptRequestPath : PermissionPromptReques
     [JsonPropertyName("paths")]
     public required string[] Paths { get; set; }
 
+    /// <summary>Canonical directory candidates that can be granted for file-tool read access in this logical session. Present only for read path prompts.</summary>
+    [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("readOnlyDirectories")]
+    public string[]? ReadOnlyDirectories { get; set; }
+
     /// <summary>Tool call ID that triggered this permission request.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("toolCallId")]
@@ -11628,6 +11634,19 @@ public sealed partial class PermissionResultApproved : PermissionResult
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("managedApprovalHandled")]
     public bool? ManagedApprovalHandled { get; set; }
+}
+
+/// <summary>Permission response variant that approves a request and records file-tool read authority for specific directories in this logical session.</summary>
+/// <remarks>The <c>approved-read-only-for-session</c> variant of <see cref="PermissionResult"/>.</remarks>
+public sealed partial class PermissionResultApprovedReadOnlyForSession : PermissionResult
+{
+    /// <inheritdoc />
+    [JsonIgnore]
+    public override string Kind => "approved-read-only-for-session";
+
+    /// <summary>Canonical directories covered by the session read-only grant.</summary>
+    [JsonPropertyName("directories")]
+    public required string[] Directories { get; set; }
 }
 
 /// <summary>Session-scoped tool-approval rule for specific shell command identifiers.</summary>
@@ -11931,6 +11950,7 @@ public sealed partial class PermissionResultDeniedByPermissionRequestHook : Perm
     TypeDiscriminatorPropertyName = "kind",
     UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FallBackToBaseType)]
 [JsonDerivedType(typeof(PermissionResultApproved), "approved")]
+[JsonDerivedType(typeof(PermissionResultApprovedReadOnlyForSession), "approved-read-only-for-session")]
 [JsonDerivedType(typeof(PermissionResultApprovedForSession), "approved-for-session")]
 [JsonDerivedType(typeof(PermissionResultApprovedForLocation), "approved-for-location")]
 [JsonDerivedType(typeof(PermissionResultCancelled), "cancelled")]
@@ -20647,6 +20667,7 @@ public readonly struct ExtensionsLoadedExtensionStatus : IEquatable<ExtensionsLo
 [JsonSerializable(typeof(PermissionResultApproved))]
 [JsonSerializable(typeof(PermissionResultApprovedForLocation))]
 [JsonSerializable(typeof(PermissionResultApprovedForSession))]
+[JsonSerializable(typeof(PermissionResultApprovedReadOnlyForSession))]
 [JsonSerializable(typeof(PermissionResultCancelled))]
 [JsonSerializable(typeof(PermissionResultDeniedByContentExclusionPolicy))]
 [JsonSerializable(typeof(PermissionResultDeniedByPermissionRequestHook))]

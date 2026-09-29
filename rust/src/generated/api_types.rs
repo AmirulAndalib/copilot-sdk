@@ -14208,6 +14208,23 @@ pub struct PermissionDecisionApproveForSession {
     pub kind: PermissionDecisionApproveForSessionKind,
 }
 
+/// Approve file-tool read access to specific directories for this logical session, including continuation or resume.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PermissionDecisionApproveReadOnlyForSession {
+    /// Canonical directories covered by the read-only grant
+    pub directories: Vec<String>,
+    /// Approve read-only file-tool directory access for this session
+    pub kind: PermissionDecisionApproveReadOnlyForSessionKind,
+}
+
 /// Location-scoped approval details for specific command identifiers.
 ///
 /// <div class="warning">
@@ -17918,12 +17935,42 @@ pub struct ResponseFormat {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SandboxConfigAuth {
-    /// Whether to export `GH_TOKEN` so the `gh` CLI authenticates inside the sandbox without the OS keyring the sandbox blocks. Default: false (opt-in).
+    /// Whether to authenticate sandboxed gh through the local masking proxy. The child receives a fake GH_TOKEN; its real value is substituted only at github.com, api.github.com and uploads.github.com (github.com because gh repo clone authenticates git through gh auth git-credential). The repository's GitHub account takes precedence over the Copilot login. Default: false (opt-in).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub gh: Option<bool>,
-    /// Whether to inject git credentials as an `http.<url>.extraheader` so authenticated HTTPS git works inside the sandbox without the shell-based credential helper the sandbox blocks. github.com is served by the Copilot token; every other forge (Azure DevOps, GitHub Enterprise Server, GitLab, ...) by a credential the host resolves from the user's own helper before the sandbox is applied. Default: false (opt-in).
+    /// Whether to authenticate sandboxed HTTPS git through the local masking proxy. The child receives a fake `http.<url>.extraheader`; the real Authorization header is substituted only at its original HTTPS host, port, and repository path scope. github.com uses the Copilot token; other forges use credentials resolved from the user's own helper on the host. Default: false (opt-in).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub git: Option<bool>,
+}
+
+/// Destinations authorized to receive one masked environment credential.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SandboxMaskedEnvVar {
+    /// Nonempty list of HTTPS injection hostnames or *.example.com patterns. Bare * is not accepted. These grants never override the sandbox network policy. Values in plaintext HTTP requests, URLs, bodies, encoded credentials, and signed requests are not substituted.
+    pub inject_hosts: Vec<String>,
+}
+
+/// Whole-value environment credential masking for sandboxed children.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SandboxCredentialsConfig {
+    /// Environment variable names and their HTTPS injection destinations. Absent variables stay absent. No real values or sentinels are stored in this map.
+    pub env_vars: HashMap<String, SandboxMaskedEnvVar>,
 }
 
 /// macOS seatbelt experimental options.
@@ -18096,6 +18143,9 @@ pub struct SandboxConfig {
     /// Credential-injection capability flags.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth: Option<SandboxConfigAuth>,
+    /// Opt-in whole-value environment masking for sandboxed shell, MCP, and LSP children. Configured names get random sentinels; the local proxy substitutes them only in HTTPS request headers at their injection hosts. Approved bypasses skip masking and the sandbox proxy, so bypassed shells may receive the real environment values. Disabled or explicitly opted-out routes are not protected. No credential values are stored in this configuration.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub credentials: Option<SandboxCredentialsConfig>,
     /// Whether sandboxing is enabled for the session.
     pub enabled: bool,
     /// The `sandboxLspServers` counterpart of `managedMcpRoutingLocked`.
@@ -39757,6 +39807,14 @@ pub enum PermissionDecisionApproveForSessionKind {
     ApproveForSession,
 }
 
+/// Approve read-only file-tool directory access for this session
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PermissionDecisionApproveReadOnlyForSessionKind {
+    #[serde(rename = "approve-read-only-for-session")]
+    #[default]
+    ApproveReadOnlyForSession,
+}
+
 /// Approval scoped to specific command identifiers.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PermissionDecisionApproveForLocationApprovalCommandsKind {
@@ -39988,6 +40046,7 @@ pub enum PermissionDecisionDeniedByPermissionRequestHookKind {
 pub enum PermissionDecision {
     ApproveOnce(PermissionDecisionApproveOnce),
     ApproveForSession(PermissionDecisionApproveForSession),
+    ApproveReadOnlyForSession(PermissionDecisionApproveReadOnlyForSession),
     ApproveForLocation(PermissionDecisionApproveForLocation),
     ApprovePermanently(PermissionDecisionApprovePermanently),
     Reject(PermissionDecisionReject),

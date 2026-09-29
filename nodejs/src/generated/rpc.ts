@@ -3819,6 +3819,7 @@ export type OptionsUpdateToolFilterPrecedence =
 export type PermissionDecision =
   | PermissionDecisionApproveOnce
   | PermissionDecisionApproveForSession
+  | PermissionDecisionApproveReadOnlyForSession
   | PermissionDecisionApproveForLocation
   | PermissionDecisionApprovePermanently
   | PermissionDecisionReject
@@ -16648,6 +16649,25 @@ export interface PermissionDecisionApproveForSessionApprovalExtensionEnvAccess {
   environmentVariables: [string, ...string[]];
 }
 /**
+ * Approve file-tool read access to specific directories for this logical session, including continuation or resume.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "PermissionDecisionApproveReadOnlyForSession".
+ */
+/** @experimental */
+export interface PermissionDecisionApproveReadOnlyForSession {
+  /**
+   * Approve read-only file-tool directory access for this session
+   */
+  kind: "approve-read-only-for-session";
+  /**
+   * Canonical directories covered by the read-only grant
+   *
+   * @minItems 1
+   */
+  directories: [string, ...string[]];
+}
+/**
  * Permission-decision request variant to approve and persist a permission for a project location, with approval details and location key.
  *
  * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
@@ -20109,6 +20129,7 @@ export interface SandboxConfig {
    */
   managedLspRoutingLocked?: boolean;
   auth?: SandboxConfigAuth;
+  credentials?: SandboxCredentialsConfig;
   /**
    * Whether to auto-grant read access to tool directories discovered on PATH and in toolchain environment variables (GOROOT, JAVA_HOME, VIRTUAL_ENV, and similar), and to common developer-tool caches, config, and toolchains. Writable grants cover scratch caches, the Unix GitHub CLI cache, and Cargo's registry, git store, and lock/tracker files. A relocated CARGO_HOME gets the same narrow split: registry and git are read-write; bin is read-only; the home root, config.toml, and credentials.toml stay ungranted. Set to false to disable every grant listed above; user-installed toolchains and caches then need explicit userPolicy.filesystem readonlyPaths and readwritePaths entries. The working directory (see addCurrentWorkingDirectory), temporary storage, session log paths, and system locations follow their own rules and stay granted. Default: true (enabled by default; set to false to opt out).
    */
@@ -20244,13 +20265,41 @@ export interface SandboxConfigUserPolicyExperimentalSeatbelt {
 /** @experimental */
 export interface SandboxConfigAuth {
   /**
-   * Whether to inject git credentials as an `http.<url>.extraheader` so authenticated HTTPS git works inside the sandbox without the shell-based credential helper the sandbox blocks. github.com is served by the Copilot token; every other forge (Azure DevOps, GitHub Enterprise Server, GitLab, ...) by a credential the host resolves from the user's own helper before the sandbox is applied. Default: false (opt-in).
+   * Whether to authenticate sandboxed HTTPS git through the local masking proxy. The child receives a fake `http.<url>.extraheader`; the real Authorization header is substituted only at its original HTTPS host, port, and repository path scope. github.com uses the Copilot token; other forges use credentials resolved from the user's own helper on the host. Default: false (opt-in).
    */
   git?: boolean;
   /**
-   * Whether to export `GH_TOKEN` so the `gh` CLI authenticates inside the sandbox without the OS keyring the sandbox blocks. Default: false (opt-in).
+   * Whether to authenticate sandboxed gh through the local masking proxy. The child receives a fake GH_TOKEN; its real value is substituted only at github.com, api.github.com and uploads.github.com (github.com because gh repo clone authenticates git through gh auth git-credential). The repository's GitHub account takes precedence over the Copilot login. Default: false (opt-in).
    */
   gh?: boolean;
+}
+/**
+ * Whole-value environment credential masking for sandboxed children.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "SandboxCredentialsConfig".
+ */
+/** @experimental */
+export interface SandboxCredentialsConfig {
+  /**
+   * Environment variable names and their HTTPS injection destinations. Absent variables stay absent. No real values or sentinels are stored in this map.
+   */
+  envVars: {
+    [k: string]: SandboxMaskedEnvVar | undefined;
+  };
+}
+/**
+ * Destinations authorized to receive one masked environment credential.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "SandboxMaskedEnvVar".
+ */
+/** @experimental */
+export interface SandboxMaskedEnvVar {
+  /**
+   * Nonempty list of HTTPS injection hostnames or *.example.com patterns. Bare * is not accepted. These grants never override the sandbox network policy. Values in plaintext HTTP requests, URLs, bodies, encoded credentials, and signed requests are not substituted.
+   */
+  injectHosts: string[];
 }
 /**
  * Request to disable sandboxing for the current session while resolving an active sandbox-bypass permission prompt.

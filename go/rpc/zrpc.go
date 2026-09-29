@@ -9647,6 +9647,20 @@ func (PermissionDecisionApprovePermanently) Kind() PermissionDecisionKind {
 	return PermissionDecisionKindApprovePermanently
 }
 
+// Approve file-tool read access to specific directories for this logical session, including
+// continuation or resume.
+// Experimental: PermissionDecisionApproveReadOnlyForSession is part of an experimental API
+// and may change or be removed.
+type PermissionDecisionApproveReadOnlyForSession struct {
+	// Canonical directories covered by the read-only grant
+	Directories []string `json:"directories"`
+}
+
+func (PermissionDecisionApproveReadOnlyForSession) permissionDecision() {}
+func (PermissionDecisionApproveReadOnlyForSession) Kind() PermissionDecisionKind {
+	return PermissionDecisionKindApproveReadOnlyForSession
+}
+
 // Permission-decision variant indicating the request was cancelled before use, with an
 // optional reason.
 // Experimental: PermissionDecisionCancelled is part of an experimental API and may change
@@ -12550,6 +12564,12 @@ type SandboxConfig struct {
 	AllowDevToolAccess *bool `json:"allowDevToolAccess,omitempty"`
 	// Credential-injection capability flags.
 	Auth *SandboxConfigAuth `json:"auth,omitempty"`
+	// Opt-in whole-value environment masking for sandboxed shell, MCP, and LSP children.
+	// Configured names get random sentinels; the local proxy substitutes them only in HTTPS
+	// request headers at their injection hosts. Approved bypasses skip masking and the sandbox
+	// proxy, so bypassed shells may receive the real environment values. Disabled or explicitly
+	// opted-out routes are not protected. No credential values are stored in this configuration.
+	Credentials *SandboxCredentialsConfig `json:"credentials,omitempty"`
 	// Whether sandboxing is enabled for the session.
 	Enabled bool `json:"enabled"`
 	// The `sandboxLspServers` counterpart of `managedMcpRoutingLocked`.
@@ -12583,14 +12603,17 @@ type SandboxConfig struct {
 // Experimental: SandboxConfigAuth is part of an experimental API and may change or be
 // removed.
 type SandboxConfigAuth struct {
-	// Whether to export `GH_TOKEN` so the `gh` CLI authenticates inside the sandbox without the
-	// OS keyring the sandbox blocks. Default: false (opt-in).
+	// Whether to authenticate sandboxed gh through the local masking proxy. The child receives
+	// a fake GH_TOKEN; its real value is substituted only at github.com, api.github.com and
+	// uploads.github.com (github.com because gh repo clone authenticates git through gh auth
+	// git-credential). The repository's GitHub account takes precedence over the Copilot login.
+	// Default: false (opt-in).
 	Gh *bool `json:"gh,omitempty"`
-	// Whether to inject git credentials as an `http.<url>.extraheader` so authenticated HTTPS
-	// git works inside the sandbox without the shell-based credential helper the sandbox
-	// blocks. github.com is served by the Copilot token; every other forge (Azure DevOps,
-	// GitHub Enterprise Server, GitLab, ...) by a credential the host resolves from the user's
-	// own helper before the sandbox is applied. Default: false (opt-in).
+	// Whether to authenticate sandboxed HTTPS git through the local masking proxy. The child
+	// receives a fake `http.<url>.extraheader`; the real Authorization header is substituted
+	// only at its original HTTPS host, port, and repository path scope. github.com uses the
+	// Copilot token; other forges use credentials resolved from the user's own helper on the
+	// host. Default: false (opt-in).
 	Git *bool `json:"git,omitempty"`
 }
 
@@ -12694,6 +12717,15 @@ type SandboxConfigUserPolicyNetworkProxy struct {
 type SandboxConfigUserPolicySeatbelt struct {
 	// Whether the macOS seatbelt profile may access the keychain.
 	KeychainAccess *bool `json:"keychainAccess,omitempty"`
+}
+
+// Whole-value environment credential masking for sandboxed children.
+// Experimental: SandboxCredentialsConfig is part of an experimental API and may change or
+// be removed.
+type SandboxCredentialsConfig struct {
+	// Environment variable names and their HTTPS injection destinations. Absent variables stay
+	// absent. No real values or sentinels are stored in this map.
+	EnvVars map[string]SandboxMaskedEnvVar `json:"envVars"`
 }
 
 // Request to disable sandboxing for the current session while resolving an active
@@ -12807,6 +12839,16 @@ type SandboxHostSupport struct {
 	// Whether a process-containment backend is usable on this host: Seatbelt on macOS,
 	// Bubblewrap on Linux, or ProcessContainer on Windows.
 	Supported bool `json:"supported"`
+}
+
+// Destinations authorized to receive one masked environment credential.
+// Experimental: SandboxMaskedEnvVar is part of an experimental API and may change or be
+// removed.
+type SandboxMaskedEnvVar struct {
+	// Nonempty list of HTTPS injection hostnames or *.example.com patterns. Bare * is not
+	// accepted. These grants never override the sandbox network policy. Values in plaintext
+	// HTTP requests, URLs, bodies, encoded credentials, and signed requests are not substituted.
+	InjectHosts []string `json:"injectHosts"`
 }
 
 // Register an absolute-time scheduled prompt.
@@ -23092,6 +23134,7 @@ const (
 	PermissionDecisionKindApproveForSession                              PermissionDecisionKind = "approve-for-session"
 	PermissionDecisionKindApproveOnce                                    PermissionDecisionKind = "approve-once"
 	PermissionDecisionKindApprovePermanently                             PermissionDecisionKind = "approve-permanently"
+	PermissionDecisionKindApproveReadOnlyForSession                      PermissionDecisionKind = "approve-read-only-for-session"
 	PermissionDecisionKindCancelled                                      PermissionDecisionKind = "cancelled"
 	PermissionDecisionKindDeniedByContentExclusionPolicy                 PermissionDecisionKind = "denied-by-content-exclusion-policy"
 	PermissionDecisionKindDeniedByPermissionRequestHook                  PermissionDecisionKind = "denied-by-permission-request-hook"

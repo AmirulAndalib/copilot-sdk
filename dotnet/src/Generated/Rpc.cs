@@ -17061,13 +17061,31 @@ public sealed class ProviderConfig
 [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed class SandboxConfigAuth
 {
-    /// <summary>Whether to export `GH_TOKEN` so the `gh` CLI authenticates inside the sandbox without the OS keyring the sandbox blocks. Default: false (opt-in).</summary>
+    /// <summary>Whether to authenticate sandboxed gh through the local masking proxy. The child receives a fake GH_TOKEN; its real value is substituted only at github.com, api.github.com and uploads.github.com (github.com because gh repo clone authenticates git through gh auth git-credential). The repository's GitHub account takes precedence over the Copilot login. Default: false (opt-in).</summary>
     [JsonPropertyName("gh")]
     public bool? Gh { get; set; }
 
-    /// <summary>Whether to inject git credentials as an `http.&lt;url&gt;.extraheader` so authenticated HTTPS git works inside the sandbox without the shell-based credential helper the sandbox blocks. github.com is served by the Copilot token; every other forge (Azure DevOps, GitHub Enterprise Server, GitLab, ...) by a credential the host resolves from the user's own helper before the sandbox is applied. Default: false (opt-in).</summary>
+    /// <summary>Whether to authenticate sandboxed HTTPS git through the local masking proxy. The child receives a fake `http.&lt;url&gt;.extraheader`; the real Authorization header is substituted only at its original HTTPS host, port, and repository path scope. github.com uses the Copilot token; other forges use credentials resolved from the user's own helper on the host. Default: false (opt-in).</summary>
     [JsonPropertyName("git")]
     public bool? Git { get; set; }
+}
+
+/// <summary>Destinations authorized to receive one masked environment credential.</summary>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+public sealed class SandboxMaskedEnvVar
+{
+    /// <summary>Nonempty list of HTTPS injection hostnames or *.example.com patterns. Bare * is not accepted. These grants never override the sandbox network policy. Values in plaintext HTTP requests, URLs, bodies, encoded credentials, and signed requests are not substituted.</summary>
+    [JsonPropertyName("injectHosts")]
+    public IList<string> InjectHosts { get => field ??= []; set; }
+}
+
+/// <summary>Whole-value environment credential masking for sandboxed children.</summary>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+public sealed class SandboxCredentialsConfig
+{
+    /// <summary>Environment variable names and their HTTPS injection destinations. Absent variables stay absent. No real values or sentinels are stored in this map.</summary>
+    [JsonPropertyName("envVars")]
+    public IDictionary<string, SandboxMaskedEnvVar> EnvVars { get => field ??= new Dictionary<string, SandboxMaskedEnvVar>(); set; }
 }
 
 /// <summary>macOS seatbelt experimental options.</summary>
@@ -17200,6 +17218,10 @@ public sealed class SandboxConfig
     /// <summary>Credential-injection capability flags.</summary>
     [JsonPropertyName("auth")]
     public SandboxConfigAuth? Auth { get; set; }
+
+    /// <summary>Opt-in whole-value environment masking for sandboxed shell, MCP, and LSP children. Configured names get random sentinels; the local proxy substitutes them only in HTTPS request headers at their injection hosts. Approved bypasses skip masking and the sandbox proxy, so bypassed shells may receive the real environment values. Disabled or explicitly opted-out routes are not protected. No credential values are stored in this configuration.</summary>
+    [JsonPropertyName("credentials")]
+    public SandboxCredentialsConfig? Credentials { get; set; }
 
     /// <summary>Whether sandboxing is enabled for the session.</summary>
     [JsonPropertyName("enabled")]
@@ -20038,6 +20060,7 @@ public sealed class PermissionRequestResult
     UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FallBackToBaseType)]
 [JsonDerivedType(typeof(PermissionDecisionApproveOnce), "approve-once")]
 [JsonDerivedType(typeof(PermissionDecisionApproveForSession), "approve-for-session")]
+[JsonDerivedType(typeof(PermissionDecisionApproveReadOnlyForSession), "approve-read-only-for-session")]
 [JsonDerivedType(typeof(PermissionDecisionApproveForLocation), "approve-for-location")]
 [JsonDerivedType(typeof(PermissionDecisionApprovePermanently), "approve-permanently")]
 [JsonDerivedType(typeof(PermissionDecisionReject), "reject")]
@@ -20269,6 +20292,20 @@ public partial class PermissionDecisionApproveForSession : PermissionDecision
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("domain")]
     public string? Domain { get; set; }
+}
+
+/// <summary>Approve file-tool read access to specific directories for this logical session, including continuation or resume.</summary>
+/// <remarks>The <c>approve-read-only-for-session</c> variant of <see cref="PermissionDecision"/>.</remarks>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+public partial class PermissionDecisionApproveReadOnlyForSession : PermissionDecision
+{
+    /// <inheritdoc />
+    [JsonIgnore]
+    public override string Kind => "approve-read-only-for-session";
+
+    /// <summary>Canonical directories covered by the read-only grant.</summary>
+    [JsonPropertyName("directories")]
+    public required IList<string> Directories { get; set; }
 }
 
 /// <summary>Approval to persist for this location.</summary>
@@ -48219,6 +48256,7 @@ internal static class ClientGlobalApiRegistration
 [JsonSerializable(typeof(SandboxConfigUserPolicyNetwork))]
 [JsonSerializable(typeof(SandboxConfigUserPolicyNetworkProxy))]
 [JsonSerializable(typeof(SandboxConfigUserPolicySeatbelt))]
+[JsonSerializable(typeof(SandboxCredentialsConfig))]
 [JsonSerializable(typeof(SandboxDisableForSessionRequest))]
 [JsonSerializable(typeof(SandboxDisableForSessionResult))]
 [JsonSerializable(typeof(SandboxEnforcementStatus))]
@@ -48226,6 +48264,7 @@ internal static class ClientGlobalApiRegistration
 [JsonSerializable(typeof(SandboxGrantPathForRequestResult))]
 [JsonSerializable(typeof(SandboxHostCapability))]
 [JsonSerializable(typeof(SandboxHostSupport))]
+[JsonSerializable(typeof(SandboxMaskedEnvVar))]
 [JsonSerializable(typeof(ScheduleAddAtRequest))]
 [JsonSerializable(typeof(ScheduleAddCronRequest))]
 [JsonSerializable(typeof(ScheduleAddRequest))]

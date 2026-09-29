@@ -5622,6 +5622,12 @@ func unmarshalPermissionDecision(data []byte) (PermissionDecision, error) {
 			return nil, err
 		}
 		return &d, nil
+	case PermissionDecisionKindApproveReadOnlyForSession:
+		var d PermissionDecisionApproveReadOnlyForSession
+		if err := json.Unmarshal(data, &d); err != nil {
+			return nil, err
+		}
+		return &d, nil
 	case PermissionDecisionKindApproved:
 		var d PermissionDecisionApproved
 		if err := json.Unmarshal(data, &d); err != nil {
@@ -6481,6 +6487,17 @@ func (r PermissionDecisionApproveOnce) MarshalJSON() ([]byte, error) {
 
 func (r PermissionDecisionApprovePermanently) MarshalJSON() ([]byte, error) {
 	type alias PermissionDecisionApprovePermanently
+	return json.Marshal(struct {
+		Kind PermissionDecisionKind `json:"kind"`
+		alias
+	}{
+		Kind:  r.Kind(),
+		alias: alias(r),
+	})
+}
+
+func (r PermissionDecisionApproveReadOnlyForSession) MarshalJSON() ([]byte, error) {
+	type alias PermissionDecisionApproveReadOnlyForSession
 	return json.Marshal(struct {
 		Kind PermissionDecisionKind `json:"kind"`
 		alias

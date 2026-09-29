@@ -4186,6 +4186,9 @@ type PermissionPromptRequestPath struct {
 	AssistedApproval *PermissionAssistedApproval `json:"assistedApproval,omitempty"`
 	// File paths that require explicit approval
 	Paths []string `json:"paths"`
+	// Canonical directory candidates that can be granted for file-tool read access in this logical session. Present only for read path prompts.
+	// Experimental: ReadOnlyDirectories is part of an experimental API and may change or be removed.
+	ReadOnlyDirectories []string `json:"readOnlyDirectories,omitzero"`
 	// Tool call ID that triggered this permission request
 	ToolCallID *string `json:"toolCallId,omitempty"`
 }
@@ -4728,6 +4731,17 @@ type PermissionApprovedForSession struct {
 func (PermissionApprovedForSession) permissionResult() {}
 func (PermissionApprovedForSession) Kind() PermissionResultKind {
 	return PermissionResultKindApprovedForSession
+}
+
+// Permission response variant that approves a request and records file-tool read authority for specific directories in this logical session.
+type PermissionApprovedReadOnlyForSession struct {
+	// Canonical directories covered by the session read-only grant
+	Directories []string `json:"directories"`
+}
+
+func (PermissionApprovedReadOnlyForSession) permissionResult() {}
+func (PermissionApprovedReadOnlyForSession) Kind() PermissionResultKind {
+	return PermissionResultKindApprovedReadOnlyForSession
 }
 
 // Permission response variant indicating the request was cancelled before use, with an optional reason.
@@ -6378,6 +6392,7 @@ const (
 	PermissionResultKindApproved                                       PermissionResultKind = "approved"
 	PermissionResultKindApprovedForLocation                            PermissionResultKind = "approved-for-location"
 	PermissionResultKindApprovedForSession                             PermissionResultKind = "approved-for-session"
+	PermissionResultKindApprovedReadOnlyForSession                     PermissionResultKind = "approved-read-only-for-session"
 	PermissionResultKindCancelled                                      PermissionResultKind = "cancelled"
 	PermissionResultKindDeniedByContentExclusionPolicy                 PermissionResultKind = "denied-by-content-exclusion-policy"
 	PermissionResultKindDeniedByPermissionRequestHook                  PermissionResultKind = "denied-by-permission-request-hook"
