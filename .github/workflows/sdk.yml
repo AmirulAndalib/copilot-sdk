@@ -410,7 +410,7 @@ jobs:
       - sdk-win32-x64
       - sdk-docs
       - check-freshness
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:
       - name: Check SDK results
         env:

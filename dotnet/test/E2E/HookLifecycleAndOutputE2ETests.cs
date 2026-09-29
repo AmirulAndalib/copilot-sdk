@@ -2,6 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------------------------------------------*/
 
+using GitHub.Copilot.Test.Harness;
 using Microsoft.Extensions.AI;
 using Xunit;
 using Xunit.Abstractions;
@@ -76,6 +77,87 @@ public class HookLifecycleAndOutputE2ETests(E2ETestFixture fixture, ITestOutputH
         Assert.False(string.IsNullOrEmpty(userPromptInputs[0].WorkingDirectory));
 
         await session.DisposeAsync();
+    }
+
+    [Fact]
+    [Trait(E2ETestTraits.Backend, E2ETestTraits.SelfConfiguredBackend)]
+    public async Task Should_Invoke_Session_Hooks_With_Named_Agent_After_Recreate()
+    {
+        var prompts = new List<string>();
+        var handler = new RecordingRequestHandler();
+        await using var client = Ctx.CreateClient(options: new CopilotClientOptions
+        {
+            Connection = RuntimeConnection.ForStdio(),
+            RequestHandler = handler,
+        });
+        await client.StartAsync();
+
+        var hooks = new SessionHooks
+        {
+            OnUserPromptSubmitted = (input, _) =>
+            {
+                lock (prompts)
+                {
+                    prompts.Add(input.Prompt);
+                }
+                return Task.FromResult<UserPromptSubmittedHookOutput?>(null);
+            },
+        };
+        var agent = new CustomAgentConfig
+        {
+            Name = "named-hook-agent",
+            Description = "Responds with a short answer",
+            Prompt = "Respond briefly to the user.",
+        };
+        var provider = new ProviderConfig
+        {
+            Type = "openai",
+            WireApi = "responses",
+            BaseUrl = "https://named-agent-hooks.invalid/v1",
+            ApiKey = "test-key",
+            ModelId = "claude-sonnet-5",
+            WireModel = "claude-sonnet-5",
+        };
+        await using var session = await Ctx.CreateSessionAsync(client, new SessionConfig
+        {
+            Model = "claude-sonnet-5",
+            Provider = provider,
+            Streaming = true,
+            CustomAgents = [agent],
+            Agent = agent.Name,
+            Hooks = hooks,
+            OnPermissionRequest = PermissionHandler.ApproveAll,
+        });
+
+        var first = await session.SendAndWaitAsync(new MessageOptions { Prompt = "First named-agent turn" });
+        Assert.Contains(RecordingRequestHandler.SyntheticText, first?.Data.Content ?? string.Empty);
+        lock (prompts)
+        {
+            Assert.Single(prompts);
+            Assert.Contains("First named-agent turn", prompts[0]);
+        }
+        await session.DisposeAsync();
+
+        await using var recreated = await Ctx.CreateSessionAsync(client, new SessionConfig
+        {
+            SessionId = session.SessionId,
+            Model = "claude-sonnet-5",
+            Provider = provider,
+            Streaming = true,
+            CustomAgents = [agent],
+            Agent = agent.Name,
+            Hooks = hooks,
+            OnPermissionRequest = PermissionHandler.ApproveAll,
+        });
+        Assert.Equal(session.SessionId, recreated.SessionId);
+        var second = await recreated.SendAndWaitAsync(new MessageOptions { Prompt = "Second named-agent turn" });
+        Assert.Contains(RecordingRequestHandler.SyntheticText, second?.Data.Content ?? string.Empty);
+        lock (prompts)
+        {
+            Assert.Equal(2, prompts.Count);
+            Assert.Contains("Second named-agent turn", prompts[1]);
+        }
+        Assert.Equal(2, handler.InferenceRequests.Count);
     }
 
     [Fact]

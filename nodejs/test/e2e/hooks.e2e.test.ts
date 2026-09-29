@@ -5,17 +5,25 @@
 import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import type {
+    CopilotClient,
+    PermissionRequest,
     PreToolUseHookInput,
     PreToolUseHookOutput,
     PostToolUseHookInput,
     PostToolUseHookOutput,
 } from "../../src/index.js";
-import { approveAll } from "../../src/index.js";
-import { createSdkTestContext } from "./harness/sdkTestContext.js";
+import { approveAll, defineTool, RuntimeConnection } from "../../src/index.js";
+import {
+    createSdkTestContext,
+    getLegacyCliPathForTests,
+    isInProcessTransport,
+} from "./harness/sdkTestContext.js";
 
 describe("Session hooks", async () => {
-    const { copilotClient: client, workDir } = await createSdkTestContext();
+    const ctx = await createSdkTestContext();
+    const { copilotClient: client, workDir } = ctx;
 
     it("should invoke preToolUse hook when model runs a tool", async () => {
         const preToolUseInputs: PreToolUseHookInput[] = [];
@@ -161,4 +169,78 @@ describe("Session hooks", async () => {
 
         await session.disconnect();
     });
+
+    // Disconnecting the last owner tears the session down, so each resume must register
+    // the SDK's hooks with the freshly restored hook service.
+    async function expectPreToolUseAfterResume(target: CopilotClient): Promise<void> {
+        const preToolUseInputs: PreToolUseHookInput[] = [];
+        const permissionRequests: PermissionRequest[] = [];
+        const sessionOptions = () => ({
+            tools: [
+                defineTool("encrypt_string", {
+                    description: "Encrypts a string",
+                    parameters: z.object({
+                        input: z.string().describe("String to encrypt"),
+                    }),
+                    handler: ({ input }: { input: string }) => input.toUpperCase(),
+                }),
+            ],
+            // Records rather than denies so a regression surfaces as a clear assertion
+            // failure instead of a model-dependent denial transcript.
+            onPermissionRequest: (request: PermissionRequest) => {
+                permissionRequests.push(request);
+                return { kind: "approve-once" } as const;
+            },
+            hooks: {
+                onPreToolUse: async (input: PreToolUseHookInput) => {
+                    preToolUseInputs.push(input);
+                    return { permissionDecision: "allow" } as PreToolUseHookOutput;
+                },
+            },
+        });
+
+        let sessionId: string;
+        {
+            await using session1 = await target.createSession(sessionOptions());
+            sessionId = session1.sessionId;
+            await session1.sendAndWait({
+                prompt: "Use encrypt_string to encrypt this string: Hello",
+            });
+            expect(preToolUseInputs.map((input) => input.toolName)).toEqual(["encrypt_string"]);
+        }
+
+        await using session2 = await target.resumeSession(sessionId, sessionOptions());
+        const answer = await session2.sendAndWait({
+            prompt: "Use encrypt_string to encrypt this string: World",
+        });
+
+        expect(preToolUseInputs.map((input) => input.toolName)).toEqual([
+            "encrypt_string",
+            "encrypt_string",
+        ]);
+        expect(permissionRequests).toEqual([]);
+        // Validate the final assistant response arrived (guards against truncated captures)
+        expect(answer?.data.content).toContain("WORLD");
+    }
+
+    it("should invoke preToolUse hook for a custom tool after disconnect and resume", async () => {
+        await expectPreToolUseAfterResume(client);
+    });
+
+    // The legacy JavaScript CLI host tears sessions down through a separate path.
+    it.skipIf(isInProcessTransport)(
+        "should invoke preToolUse hook for a custom tool after disconnect and resume on the legacy CLI",
+        async () => {
+            const legacyClient = ctx.createClient({
+                connection: RuntimeConnection.forStdio({
+                    path: await getLegacyCliPathForTests(),
+                }),
+            });
+            try {
+                await expectPreToolUseAfterResume(legacyClient);
+            } finally {
+                await legacyClient.stop();
+            }
+        }
+    );
 });
