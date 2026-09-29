@@ -380,6 +380,39 @@ public class SessionRequestBuilderTest {
     }
 
     @Test
+    void nullableContinuePendingWorkPreservesExplicitValuesAndClearsDefault() throws Exception {
+        var mapper = JsonRpcClient.getObjectMapper();
+        var config = new ResumeSessionConfig();
+        for (Boolean enabled : new Boolean[]{true, false}) {
+            assertSame(config, config.setContinuePendingWork(enabled));
+            var request = SessionRequestBuilder.buildResumeRequest("sid-pending", config.clone());
+            assertEquals(enabled, request.getContinuePendingWork());
+            assertEquals(enabled,
+                    mapper.readTree(mapper.writeValueAsBytes(request)).path("continuePendingWork").booleanValue());
+        }
+
+        assertSame(config, config.setContinuePendingWork((Boolean) null));
+        assertTrue(config.getContinuePendingWork().isEmpty());
+        var request = SessionRequestBuilder.buildResumeRequest("sid-pending-default", config.clone());
+        assertNull(request.getContinuePendingWork());
+        assertFalse(mapper.readTree(mapper.writeValueAsBytes(request)).has("continuePendingWork"));
+    }
+
+    @Test
+    void continuePendingWorkIsOmittedWhenRequestIsCleared() throws Exception {
+        var mapper = JsonRpcClient.getObjectMapper();
+        for (boolean enabled : new boolean[]{true, false}) {
+            var request = new ResumeSessionRequest();
+            request.setContinuePendingWork(enabled);
+            assertEquals(enabled, request.getContinuePendingWork());
+
+            request.clearContinuePendingWork();
+            assertNull(request.getContinuePendingWork());
+            assertFalse(mapper.readTree(mapper.writeValueAsBytes(request)).has("continuePendingWork"));
+        }
+    }
+
+    @Test
     void testBuildResumeRequestForwardsEnableSessionTelemetryWhenFalse() {
         var config = new ResumeSessionConfig().setEnableSessionTelemetry(false);
         ResumeSessionRequest request = SessionRequestBuilder.buildResumeRequest("sid-1", config);

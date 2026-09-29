@@ -222,7 +222,9 @@ public record CopilotUserConfig(
     string AnalyticsTrackingId,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [property: JsonPropertyName("quota_snapshots")]
-    IReadOnlyDictionary<string, CopilotUserQuotaSnapshot>? QuotaSnapshots = null);
+    IReadOnlyDictionary<string, CopilotUserQuotaSnapshot>? QuotaSnapshots = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    long? Id = null);
 
 public record CopilotUserEndpoints(string Api, string Telemetry);
 

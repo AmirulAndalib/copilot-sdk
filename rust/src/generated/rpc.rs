@@ -78,6 +78,13 @@ impl<'a> ClientRpc<'a> {
         }
     }
 
+    /// `host.*` sub-namespace.
+    pub fn host(&self) -> ClientRpcHost<'a> {
+        ClientRpcHost {
+            client: self.client,
+        }
+    }
+
     /// `instructions.*` sub-namespace.
     pub fn instructions(&self) -> ClientRpcInstructions<'a> {
         ClientRpcInstructions {
@@ -814,6 +821,215 @@ impl<'a> ClientRpcHooks<'a> {
         let _value = self
             .client
             .call(rpc_methods::HOOKS_DISCOVER, Some(wire_params))
+            .await?;
+        Ok(serde_json::from_value(_value)?)
+    }
+}
+
+/// `host.*` RPCs.
+#[derive(Clone, Copy)]
+pub struct ClientRpcHost<'a> {
+    pub(crate) client: &'a Client,
+}
+
+impl<'a> ClientRpcHost<'a> {
+    /// Publishes an attached resident session for this listener's lifetime without copying it.
+    ///
+    /// Wire method: `host.publishSession`.
+    ///
+    /// # Parameters
+    ///
+    /// * `params` - Publishes a resident session attached to the listener's owning connection.
+    ///
+    /// # Returns
+    ///
+    /// The existing runtime identity and its resource on the listener.
+    ///
+    /// <div class="warning">
+    ///
+    /// **Experimental.** This API is part of an experimental wire-protocol surface
+    /// and may change or be removed in future SDK or CLI releases. Pin both the
+    /// SDK and CLI versions if your code depends on it.
+    ///
+    /// </div>
+    pub async fn publish_session(
+        &self,
+        params: HostPublishSessionRequest,
+    ) -> Result<HostPublishSessionResult, Error> {
+        let wire_params = serde_json::to_value(params)?;
+        let _value = self
+            .client
+            .call(rpc_methods::HOST_PUBLISHSESSION, Some(wire_params))
+            .await?;
+        Ok(serde_json::from_value(_value)?)
+    }
+
+    /// Requests app-owned materialization over the owning SDK participant.
+    ///
+    /// Wire method: `host.createSession`.
+    ///
+    /// # Parameters
+    ///
+    /// * `params` - One application-owned session handoff, requested by the supervised hosting participant.
+    ///
+    /// # Returns
+    ///
+    /// The resident session the application has materialized on its own connection.
+    ///
+    /// <div class="warning">
+    ///
+    /// **Experimental.** This API is part of an experimental wire-protocol surface
+    /// and may change or be removed in future SDK or CLI releases. Pin both the
+    /// SDK and CLI versions if your code depends on it.
+    ///
+    /// </div>
+    pub(crate) async fn create_session(
+        &self,
+        params: HostSessionCreateRequest,
+    ) -> Result<HostSessionCreateResult, Error> {
+        let wire_params = serde_json::to_value(params)?;
+        let _value = self
+            .client
+            .call(rpc_methods::HOST_CREATESESSION, Some(wire_params))
+            .await?;
+        Ok(serde_json::from_value(_value)?)
+    }
+
+    /// Releases app ownership retention after AHP detaches.
+    ///
+    /// Wire method: `host.releaseSession`.
+    ///
+    /// # Parameters
+    ///
+    /// * `params` - Ends one participation, not the application's session lifetime.
+    ///
+    /// # Returns
+    ///
+    /// Empty acknowledgement for a completed host lifecycle operation.
+    ///
+    /// <div class="warning">
+    ///
+    /// **Experimental.** This API is part of an experimental wire-protocol surface
+    /// and may change or be removed in future SDK or CLI releases. Pin both the
+    /// SDK and CLI versions if your code depends on it.
+    ///
+    /// </div>
+    pub(crate) async fn release_session(
+        &self,
+        params: HostSessionReleaseRequest,
+    ) -> Result<HostEmptyResult, Error> {
+        let wire_params = serde_json::to_value(params)?;
+        let _value = self
+            .client
+            .call(rpc_methods::HOST_RELEASESESSION, Some(wire_params))
+            .await?;
+        Ok(serde_json::from_value(_value)?)
+    }
+
+    /// Starts a connection-owned local AHP listener as a supervised SDK participant.
+    ///
+    /// Wire method: `host.start`.
+    ///
+    /// # Parameters
+    ///
+    /// * `params` - Starts a supervised AHP listener in the runtime's configured working directory.
+    ///
+    /// # Returns
+    ///
+    /// Listener readiness, returned only after binding and the supervised participant's SDK handshake.
+    ///
+    /// <div class="warning">
+    ///
+    /// **Experimental.** This API is part of an experimental wire-protocol surface
+    /// and may change or be removed in future SDK or CLI releases. Pin both the
+    /// SDK and CLI versions if your code depends on it.
+    ///
+    /// </div>
+    pub async fn start(&self, params: HostStartRequest) -> Result<HostStartResult, Error> {
+        let wire_params = serde_json::to_value(params)?;
+        let _value = self
+            .client
+            .call(rpc_methods::HOST_START, Some(wire_params))
+            .await?;
+        Ok(serde_json::from_value(_value)?)
+    }
+
+    /// Stops a listener owned by this SDK connection and joins its cleanup without deleting sessions.
+    ///
+    /// Wire method: `host.dispose`.
+    ///
+    /// # Parameters
+    ///
+    /// * `params` - Stops a connection-owned listener and joins its teardown.
+    ///
+    /// # Returns
+    ///
+    /// Empty acknowledgement for a completed host lifecycle operation.
+    ///
+    /// <div class="warning">
+    ///
+    /// **Experimental.** This API is part of an experimental wire-protocol surface
+    /// and may change or be removed in future SDK or CLI releases. Pin both the
+    /// SDK and CLI versions if your code depends on it.
+    ///
+    /// </div>
+    pub async fn dispose(&self, params: HostDisposeRequest) -> Result<HostEmptyResult, Error> {
+        let wire_params = serde_json::to_value(params)?;
+        let _value = self
+            .client
+            .call(rpc_methods::HOST_DISPOSE, Some(wire_params))
+            .await?;
+        Ok(serde_json::from_value(_value)?)
+    }
+
+    /// Returns listener settings only to the supervised hosting participant over its SDK connection.
+    ///
+    /// Wire method: `host.getConfiguration`.
+    ///
+    /// # Returns
+    ///
+    /// Normalized listener settings delivered only to the supervised hosting participant.
+    ///
+    /// <div class="warning">
+    ///
+    /// **Experimental.** This API is part of an experimental wire-protocol surface
+    /// and may change or be removed in future SDK or CLI releases. Pin both the
+    /// SDK and CLI versions if your code depends on it.
+    ///
+    /// </div>
+    pub(crate) async fn get_configuration(&self) -> Result<HostConfiguration, Error> {
+        let wire_params = serde_json::json!({});
+        let _value = self
+            .client
+            .call(rpc_methods::HOST_GETCONFIGURATION, Some(wire_params))
+            .await?;
+        Ok(serde_json::from_value(_value)?)
+    }
+
+    /// Reports a supervised hosting participant's bound AHP endpoint after its SDK handshake.
+    ///
+    /// Wire method: `host.ready`.
+    ///
+    /// # Parameters
+    ///
+    /// * `params` - Readiness reported by the supervised hosting participant on its own SDK connection.
+    ///
+    /// # Returns
+    ///
+    /// Empty acknowledgement for a completed host lifecycle operation.
+    ///
+    /// <div class="warning">
+    ///
+    /// **Experimental.** This API is part of an experimental wire-protocol surface
+    /// and may change or be removed in future SDK or CLI releases. Pin both the
+    /// SDK and CLI versions if your code depends on it.
+    ///
+    /// </div>
+    pub(crate) async fn ready(&self, params: HostReadyRequest) -> Result<HostEmptyResult, Error> {
+        let wire_params = serde_json::to_value(params)?;
+        let _value = self
+            .client
+            .call(rpc_methods::HOST_READY, Some(wire_params))
             .await?;
         Ok(serde_json::from_value(_value)?)
     }

@@ -3606,34 +3606,6 @@ func (r *InstallationConfirmationRequest) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (r *InstallationsConfirmRequest) UnmarshalJSON(data []byte) error {
-	type rawInstallationsConfirmRequest struct {
-		ConfirmationID    string          `json:"confirmationId"`
-		ExpiresAt         string          `json:"expiresAt"`
-		OperationID       string          `json:"operationId"`
-		PolicySessionID   *string         `json:"policySessionId,omitempty"`
-		Review            json.RawMessage `json:"review"`
-		ReviewFingerprint string          `json:"reviewFingerprint"`
-	}
-	var raw rawInstallationsConfirmRequest
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-	r.ConfirmationID = raw.ConfirmationID
-	r.ExpiresAt = raw.ExpiresAt
-	r.OperationID = raw.OperationID
-	r.PolicySessionID = raw.PolicySessionID
-	if raw.Review != nil {
-		value, err := unmarshalInstallationReview(raw.Review)
-		if err != nil {
-			return err
-		}
-		r.Review = value
-	}
-	r.ReviewFingerprint = raw.ReviewFingerprint
-	return nil
-}
-
 func (r InstalledPluginSource) MarshalJSON() ([]byte, error) {
 	if r.InstalledPluginSourceGitHub != nil {
 		return json.Marshal(r.InstalledPluginSourceGitHub)

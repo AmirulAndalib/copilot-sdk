@@ -8387,6 +8387,7 @@ class SandboxDecisionData:
     gh_auth: bool | None = None
     git_auth: bool | None = None
     keychain_access: bool | None = None
+    permissive_source: SandboxPermissiveSource | None = None
     policy_source: SandboxPolicySource | None = None
     process_name: str | None = None
     proxy_mode: SandboxProxyMode | None = None
@@ -8420,6 +8421,7 @@ class SandboxDecisionData:
         gh_auth = from_union([from_none, from_bool], obj.get("ghAuth"))
         git_auth = from_union([from_none, from_bool], obj.get("gitAuth"))
         keychain_access = from_union([from_none, from_bool], obj.get("keychainAccess"))
+        permissive_source = from_union([from_none, lambda x: parse_enum(SandboxPermissiveSource, x)], obj.get("permissiveSource"))
         policy_source = from_union([from_none, lambda x: parse_enum(SandboxPolicySource, x)], obj.get("policySource"))
         process_name = from_union([from_none, from_str], obj.get("processName"))
         proxy_mode = from_union([from_none, lambda x: parse_enum(SandboxProxyMode, x)], obj.get("proxyMode"))
@@ -8450,6 +8452,7 @@ class SandboxDecisionData:
             gh_auth=gh_auth,
             git_auth=git_auth,
             keychain_access=keychain_access,
+            permissive_source=permissive_source,
             policy_source=policy_source,
             process_name=process_name,
             proxy_mode=proxy_mode,
@@ -8500,6 +8503,8 @@ class SandboxDecisionData:
             result["gitAuth"] = from_union([from_none, from_bool], self.git_auth)
         if self.keychain_access is not None:
             result["keychainAccess"] = from_union([from_none, from_bool], self.keychain_access)
+        if self.permissive_source is not None:
+            result["permissiveSource"] = from_union([from_none, lambda x: to_enum(SandboxPermissiveSource, x)], self.permissive_source)
         if self.policy_source is not None:
             result["policySource"] = from_union([from_none, lambda x: to_enum(SandboxPolicySource, x)], self.policy_source)
         if self.process_name is not None:
@@ -14384,6 +14389,7 @@ class SandboxDecisionDataKind(Enum):
     SPAWN_COMPLETED = "spawn_completed"
     ENFORCEMENT_STATE = "enforcement_state"
     ACCESS_DENIED = "access_denied"
+    ACCESS_RECORDED = "access_recorded"
     BYPASS_DECIDED = "bypass_decided"
     PERMISSIVE_RETRY_DECIDED = "permissive_retry_decided"
     PERMISSIVE_RETRY_COMPLETED = "permissive_retry_completed"
@@ -14456,7 +14462,7 @@ class SandboxEnforcementPoint(Enum):
 
 
 class SandboxOutcome(Enum):
-    "Finite result of a sandbox decision. Each `SandboxDecisionData` variant uses a disjoint subset: `policy_resolved` is `resolved | degraded`, `spawn_completed` and `permissive_retry_completed` are `succeeded | failed`, `enforcement_state` is `engaged | inactive | failed`, `access_denied` is `denied`, and escalation decisions are `approved | declined`."
+    "Finite result of a sandbox decision. Each `SandboxDecisionData` variant uses a disjoint subset: `policy_resolved` is `resolved | degraded`, `spawn_completed` and `permissive_retry_completed` are `succeeded | failed`, `enforcement_state` is `engaged | inactive | failed`, `access_denied` is `denied`, `access_recorded` is `allowed`, and escalation decisions are `approved | declined`."
     # The sandbox policy resolved successfully. Describes configuration only and makes no claim that a backend engaged.
     RESOLVED = "resolved"
     # No sandbox governed the workload.
@@ -14475,6 +14481,16 @@ class SandboxOutcome(Enum):
     APPROVED = "approved"
     # A request to run outside the process sandbox was not granted.
     DECLINED = "declined"
+    # Permissive learning mode recorded an access the enforced policy would have refused, and allowed it.
+    ALLOWED = "allowed"
+
+
+class SandboxPermissiveSource(Enum):
+    "Why a sandboxed run recorded and allowed its process-container access checks instead of enforcing them."
+    # A person approved the permissive retry for this command after a sandboxed attempt was blocked.
+    APPROVED_RETRY = "approved_retry"
+    # Device-managed policy (`sandbox.learningMode: "allow"`) starts sandboxed shell commands in permissive learning mode.
+    POLICY = "policy"
 
 
 class SandboxPlatform(Enum):
@@ -15247,6 +15263,7 @@ __all__ = [
     "SandboxEnforcementPoint",
     "SandboxFilesystemPolicyDetails",
     "SandboxOutcome",
+    "SandboxPermissiveSource",
     "SandboxPlatform",
     "SandboxPolicySource",
     "SandboxProxyMode",

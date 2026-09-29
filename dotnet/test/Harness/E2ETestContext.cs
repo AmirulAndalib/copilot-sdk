@@ -80,7 +80,7 @@ public sealed class E2ETestContext : IAsyncDisposable
             Login: "e2e-test-user",
             CopilotPlan: "individual_pro",
             Endpoints: new CopilotUserEndpoints(Api: proxyUrl, Telemetry: "https://localhost:1/telemetry"),
-            AnalyticsTrackingId: "e2e-test-tracking-id"));
+            AnalyticsTrackingId: "e2e-test-tracking-id", Id: 12345));
 
         return new E2ETestContext(homeDir, workDir, proxyUrl, proxy, repoRoot);
     }

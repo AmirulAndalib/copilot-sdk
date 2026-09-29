@@ -78,6 +78,8 @@ jobs:
         env:
           RUSTDOCFLAGS: "-D warnings"
         run: cargo doc --no-deps --no-default-features --features local-runtime,derive
+      - name: External-stream-only SDK
+        run: cargo test --no-default-features --features test-support --test protocol_version_test
       - run: npm ci --ignore-scripts
         working-directory: ${{ inputs.sdk-home }}/test/harness
       - if: runner.os == 'Windows'
@@ -85,7 +87,7 @@ jobs:
       - env:
           COPILOT_HMAC_KEY: ${{ secrets.COPILOT_DEVELOPER_CLI_INTEGRATION_HMAC_KEY }}
           RUST_E2E_CONCURRENCY: 4
-        run: cargo test --no-default-features --features test-support,derive -- --test-threads=4 --nocapture
+        run: cargo test --no-default-features --features runtime,test-support,derive -- --test-threads=4 --nocapture
 
   rust-inprocess:
     name: "Rust (${{ matrix.os }}, inprocess)"
@@ -189,6 +191,9 @@ jobs:
             esac
 
             export CARGO_TARGET_DIR=/tmp/copilot-sdk-rust-target
+            # Keep every integration test without filling the runner with build artifacts.
+            export CARGO_INCREMENTAL=0
+            export CARGO_PROFILE_TEST_DEBUG=0
             cd "$COPILOT_SDK_ROOT/rust"
             if [ "$COPILOT_SDK_TEST_TRANSPORT" = "inprocess" ]; then
               unset RUST_E2E_CONCURRENCY
@@ -200,5 +205,5 @@ jobs:
                 -- --exact --test-threads=1 --nocapture
             else
               export RUST_E2E_CONCURRENCY=4
-              cargo test --no-default-features --features test-support,derive -- --test-threads=4 --nocapture
+              cargo test --no-default-features --features runtime,test-support,derive -- --test-threads=4 --nocapture
             fi

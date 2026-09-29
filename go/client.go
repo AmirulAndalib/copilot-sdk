@@ -156,6 +156,7 @@ type Client struct {
 	state                              connectionState
 	sessions                           map[string]*Session
 	sessionsMux                        sync.Mutex
+	ahp                                ahpHostState
 	gitHubTokenProviders               map[string]GitHubTokenProvider
 	gitHubTokenProvidersMux            sync.RWMutex
 	requestAdapter                     *copilotRequestAdapter
@@ -587,6 +588,7 @@ func (c *Client) Start(ctx context.Context) error {
 //	    log.Printf("Cleanup error: %v", err)
 //	}
 func (c *Client) Stop() error {
+	c.disconnectAhpHosts()
 	var errs []error
 
 	// Disconnect all active sessions
@@ -727,6 +729,7 @@ func (c *Client) logDebugTiming(start time.Time, message string) {
 //	    client.ForceStop()
 //	}
 func (c *Client) ForceStop() {
+	c.disconnectAhpHosts()
 	// Kill the process without waiting for startStopMux, which Start may hold.
 	// This unblocks any I/O Start is doing (connect, version check).
 	if p := c.osProcess.Swap(nil); p != nil {
@@ -1223,6 +1226,10 @@ func (c *Client) CreateSession(ctx context.Context, config *SessionConfig) (*Ses
 		return nil, err
 	}
 
+	if err := c.captureAhpSession(session, req); err != nil {
+		unregisterSession(registeredSessionID, session)
+		return nil, err
+	}
 	if registrationID != "" {
 		session.setGitHubTokenProviderRegistrationRelease(func() {
 			c.unregisterGitHubTokenProvider(registrationID)
@@ -1544,6 +1551,10 @@ func (c *Client) ResumeSessionWithOptions(ctx context.Context, sessionID string,
 		return nil, err
 	}
 
+	if err := c.captureAhpSession(session, req); err != nil {
+		restoreReplacedSession()
+		return nil, err
+	}
 	if registrationID != "" {
 		session.setGitHubTokenProviderRegistrationRelease(func() {
 			c.unregisterGitHubTokenProvider(registrationID)
@@ -2570,6 +2581,9 @@ func (c *Client) setupNotificationHandler() {
 		}
 		c.client.SetRequestContextHandler("installations.confirm", adapter.handle)
 	}
+	c.client.SetRequestHandler("host.materializeSession", jsonrpc2.RequestHandlerFor(c.materializeAhpSession))
+	c.client.SetRequestHandler("host.sessionReleased", jsonrpc2.NotificationHandlerFor(c.releaseAhpSession))
+	c.client.SetRequestHandler("host.exited", jsonrpc2.NotificationHandlerFor(c.handleAhpExit))
 }
 
 func (c *Client) registerGitHubTokenProvider(provider GitHubTokenProvider) string {
@@ -2602,6 +2616,7 @@ func (c *Client) clearGitHubTokenProviders() {
 }
 
 func (c *Client) handleConnectionClose() {
+	c.disconnectAhpHosts()
 	c.closeCopilotRequestAdapter()
 	c.closeInstallationConfirmationAdapter()
 	c.clearGitHubTokenProviders()

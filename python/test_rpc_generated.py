@@ -2,15 +2,19 @@
 
 import inspect
 import json
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
+from copilot._jsonrpc import JsonRpcClient
+from copilot.generated.rpc import ClientGlobalApiHandlers, register_client_global_api_handlers
 from copilot.rpc import (
     BuiltinToolInputSchemaType,
     CommandsApi,
     CommandsInvokeRequest,
     CommandsRespondToQueuedCommandRequest,
+    HostDisposeRequest,
+    HostEmptyResult,
     LocalSessionMetadataValue,
     MCPServerConfigHTTP,
     QueuedCommandHandled,
@@ -19,11 +23,41 @@ from copilot.rpc import (
     RemoteControlStatusResult,
     RemoteSessionMetadataValue,
     SandboxConfig,
+    ServerRpc,
     SessionList,
     SlashCommandTextResult,
     TaskAgentInfo,
     UIElicitationSchemaType,
 )
+
+
+async def test_host_dispose_deserializes_empty_acknowledgement():
+    client = Mock(request=AsyncMock(return_value={}))
+
+    result = await ServerRpc(client).host.dispose(HostDisposeRequest(host_id="host"))
+
+    assert isinstance(result, HostEmptyResult)
+    assert result.to_dict() == {}
+    client.request.assert_awaited_once_with("host.dispose", {"hostId": "host"})
+
+
+async def test_host_shutdown_handler_round_trips_empty_acknowledgement():
+    client = JsonRpcClient(Mock())
+    client._send_message = AsyncMock()
+    host = Mock(shutdown=AsyncMock(return_value=HostEmptyResult()))
+    register_client_global_api_handlers(client, ClientGlobalApiHandlers(host=host))
+
+    await client._dispatch_request(
+        {"jsonrpc": "2.0", "id": "shutdown", "method": "host.shutdown", "params": {}},
+        client.request_handlers["host.shutdown"],
+        cancellation_id=None,
+    )
+
+    host.shutdown.assert_awaited_once()
+    assert isinstance(host.shutdown.call_args.args[0], HostEmptyResult)
+    client._send_message.assert_awaited_once_with(
+        {"jsonrpc": "2.0", "id": "shutdown", "result": {}}
+    )
 
 
 def test_sandbox_config_round_trips_allow_bypass_and_omits_when_absent():

@@ -107,6 +107,190 @@ internal sealed class ConnectRequest
     public string? Token { get; set; }
 }
 
+/// <summary>The existing runtime identity and its resource on the listener.</summary>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+public sealed class HostPublishSessionResult
+{
+    /// <summary>Canonical runtime ID of the published session.</summary>
+    [JsonPropertyName("sessionId")]
+    public string SessionId { get; set; } = string.Empty;
+
+    /// <summary>AHP resource URI for the session on this listener.</summary>
+    [JsonPropertyName("sessionUri")]
+    public string SessionUri { get; set; } = string.Empty;
+}
+
+/// <summary>Publishes a resident session attached to the listener's owning connection.</summary>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+internal sealed class HostPublishSessionRequest
+{
+    /// <summary>Listener UUID returned by host.start.</summary>
+    [JsonPropertyName("hostId")]
+    public string HostId { get; set; } = string.Empty;
+
+    /// <summary>Canonical runtime session ID attached to the listener's owning connection.</summary>
+    [JsonPropertyName("sessionId")]
+    public string SessionId { get; set; } = string.Empty;
+}
+
+/// <summary>The resident session the application has materialized on its own connection.</summary>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+internal sealed class HostCreateSessionResult
+{
+    /// <summary>Runtime session UUID materialized on the application's SDK connection.</summary>
+    [JsonPropertyName("sessionId")]
+    public string SessionId { get; set; } = string.Empty;
+}
+
+/// <summary>One application-owned session handoff, requested by the supervised hosting participant.</summary>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+internal sealed class HostCreateSessionRequest
+{
+    /// <summary>Host-selected SDK creation or resume settings, without executable callbacks or tools.</summary>
+    [JsonPropertyName("config")]
+    public IDictionary<string, JsonElement> Config { get => field ??= new Dictionary<string, JsonElement>(); set; }
+
+    /// <summary>Unique identity for this participation, independent of the session lifetime.</summary>
+    [JsonPropertyName("handoffId")]
+    public string HandoffId { get; set; } = string.Empty;
+
+    /// <summary>Resume an app-owned durable session instead of creating a new session.</summary>
+    [JsonPropertyName("resume")]
+    public bool? Resume { get; set; }
+}
+
+/// <summary>Empty acknowledgement for a completed host lifecycle operation.</summary>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+internal sealed class HostReleaseSessionResult
+{
+}
+
+/// <summary>Ends one participation, not the application's session lifetime.</summary>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+internal sealed class HostReleaseSessionRequest
+{
+    /// <summary>Identity of the participation to release without destroying the session.</summary>
+    [JsonPropertyName("handoffId")]
+    public string HandoffId { get; set; } = string.Empty;
+}
+
+/// <summary>Listener readiness, returned only after binding and the supervised participant's SDK handshake.</summary>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+public sealed class HostStartResult
+{
+    /// <summary>Caller-generated listener UUID.</summary>
+    [JsonPropertyName("hostId")]
+    public string HostId { get; set; } = string.Empty;
+
+    /// <summary>Separate host process ID, when provided by a legacy runtime. Absent for in-process listeners.</summary>
+    [JsonPropertyName("pid")]
+    public long? Pid { get; set; }
+
+    /// <summary>Secret connection token, absent when authentication is disabled.</summary>
+    [JsonPropertyName("token")]
+    public string? Token { get; set; }
+
+    /// <summary>Actual bound WebSocket URL, including the allocated port.</summary>
+    [JsonPropertyName("url")]
+    public string Url { get; set; } = string.Empty;
+}
+
+/// <summary>Starts a supervised AHP listener in the runtime's configured working directory.</summary>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+internal sealed class HostStartRequest
+{
+    /// <summary>Caller-generated UUID identifying this connection-owned listener.</summary>
+    [JsonPropertyName("hostId")]
+    public string HostId { get; set; } = string.Empty;
+
+    /// <summary>Listener hostname. Defaults to 127.0.0.1; explicit non-loopback binds are allowed.</summary>
+    [JsonPropertyName("hostname")]
+    public string? Hostname { get; set; }
+
+    /// <summary>Listener port. Omitted or zero requests an OS-allocated port.</summary>
+    [JsonPropertyName("port")]
+    public int? Port { get; set; }
+
+    /// <summary>Require token authentication (default true). Cannot be false with a token.</summary>
+    [JsonPropertyName("requireConnectionToken")]
+    public bool? RequireConnectionToken { get; set; }
+
+    /// <summary>Ask the owning application to resume its durable AHP sessions.</summary>
+    [JsonPropertyName("resumeFactory")]
+    public bool? ResumeFactory { get; set; }
+
+    /// <summary>Ask the owning SDK application to materialize AHP sessions.</summary>
+    [JsonPropertyName("sessionFactory")]
+    public bool? SessionFactory { get; set; }
+
+    /// <summary>Nonempty connection token. Generated randomly when required and omitted.</summary>
+    [JsonPropertyName("token")]
+    public string? Token { get; set; }
+}
+
+/// <summary>Empty acknowledgement for a completed host lifecycle operation.</summary>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+public sealed class HostDisposeResult
+{
+}
+
+/// <summary>Stops a connection-owned listener and joins its teardown.</summary>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+internal sealed class HostDisposeRequest
+{
+    /// <summary>Listener UUID. Unknown or successfully stopped IDs are harmless.</summary>
+    [JsonPropertyName("hostId")]
+    public string HostId { get; set; } = string.Empty;
+}
+
+/// <summary>Normalized listener settings delivered only to the supervised hosting participant.</summary>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+internal sealed class HostGetConfigurationResult
+{
+    /// <summary>Hostname or IP address to bind.</summary>
+    [JsonPropertyName("hostname")]
+    public string Hostname { get; set; } = string.Empty;
+
+    /// <summary>Port to bind, with zero requesting OS allocation.</summary>
+    [JsonPropertyName("port")]
+    public int Port { get; set; }
+
+    /// <summary>Whether the listener requires token authentication.</summary>
+    [JsonPropertyName("requireConnectionToken")]
+    public bool RequireConnectionToken { get; set; }
+
+    /// <summary>Whether app-owned durable sessions are resumed by the owning application.</summary>
+    [JsonPropertyName("resumeFactory")]
+    public bool? ResumeFactory { get; set; }
+
+    /// <summary>Whether session materialization is delegated to the owning application.</summary>
+    [JsonPropertyName("sessionFactory")]
+    public bool? SessionFactory { get; set; }
+
+    /// <summary>Secret connection token, absent when authentication is disabled.</summary>
+    [JsonPropertyName("token")]
+    public string? Token { get; set; }
+}
+
+/// <summary>Empty acknowledgement for a completed host lifecycle operation.</summary>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+internal sealed class HostReadyResult
+{
+}
+
+/// <summary>Readiness reported by the supervised hosting participant on its own SDK connection.</summary>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+internal sealed class HostReadyRequest
+{
+    /// <summary>Actual bound WebSocket URL.</summary>
+    [JsonPropertyName("address")]
+    public string Address { get; set; } = string.Empty;
+
+    /// <summary>Configured secret token, absent when authentication is disabled.</summary>
+    [JsonPropertyName("token")]
+    public string? Token { get; set; }
+}
+
 /// <summary>One server-discovered hook action from user, repository, plugin, or managed-policy configuration.</summary>
 [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed class DiscoveredHook
@@ -19600,18 +19784,13 @@ internal sealed class UIEphemeralQueryRequest
     public string SessionId { get; set; } = string.Empty;
 }
 
-/// <summary>MCP response metadata.</summary>
-public sealed class UIElicitationResponseMeta
-{
-}
-
 /// <summary>The elicitation response (accept with form values, decline, or cancel).</summary>
 [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public sealed class UIElicitationResponse
 {
     /// <summary>MCP response metadata.</summary>
     [JsonPropertyName("_meta")]
-    public UIElicitationResponseMeta? Meta { get; set; }
+    public IDictionary<string, JsonElement>? Meta { get; set; }
 
     /// <summary>The user's response: accept (submitted), decline (rejected), or cancel (dismissed).</summary>
     [JsonPropertyName("action")]
@@ -19620,11 +19799,6 @@ public sealed class UIElicitationResponse
     /// <summary>The form values submitted by the user (present when action is 'accept').</summary>
     [JsonPropertyName("content")]
     public IDictionary<string, JsonElement>? Content { get; set; }
-}
-
-/// <summary>MCP request metadata.</summary>
-public sealed class UIElicitationRequestMeta
-{
 }
 
 /// <summary>JSON Schema describing the form fields to present to the user.</summary>
@@ -19659,7 +19833,7 @@ internal sealed class UIElicitationRequest
 {
     /// <summary>MCP request metadata.</summary>
     [JsonPropertyName("_meta")]
-    public UIElicitationRequestMeta? Meta { get; set; }
+    public IDictionary<string, JsonElement>? Meta { get; set; }
 
     /// <summary>Message describing what information is needed from the user.</summary>
     [JsonPropertyName("message")]
@@ -24675,6 +24849,26 @@ public sealed class CanvasProviderInvokeActionRequest
     /// <summary>Target session identifier.</summary>
     [JsonPropertyName("sessionId")]
     public string SessionId { get; set; } = string.Empty;
+}
+
+/// <summary>Reports a supervised listener's hosting-task termination and cleanup outcome.</summary>
+public sealed class HostExitedRequest
+{
+    /// <summary>Explicit startup or teardown failure, when present.</summary>
+    [JsonPropertyName("error")]
+    public string? Error { get; set; }
+
+    /// <summary>Process exit status when available; absent for in-process listener tasks.</summary>
+    [JsonPropertyName("exitCode")]
+    public long? ExitCode { get; set; }
+
+    /// <summary>Listener UUID.</summary>
+    [JsonPropertyName("hostId")]
+    public string HostId { get; set; } = string.Empty;
+
+    /// <summary>Cause of termination.</summary>
+    [JsonPropertyName("reason")]
+    public HostExitReason Reason { get; set; }
 }
 
 /// <summary>Opaque integrator-owned process launch profile for one extension entrypoint.</summary>
@@ -39436,6 +39630,75 @@ public readonly struct SessionFsSqliteTransactionErrorClass : IEquatable<Session
 }
 
 
+/// <summary>Defines the allowed values.</summary>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+[JsonConverter(typeof(Converter))]
+[DebuggerDisplay("{Value,nq}")]
+public readonly struct HostExitReason : IEquatable<HostExitReason>
+{
+    private readonly string? _value;
+
+    /// <summary>Initializes a new instance of the <see cref="HostExitReason"/> struct.</summary>
+    /// <param name="value">The value to associate with this <see cref="HostExitReason"/>.</param>
+    [JsonConstructor]
+    public HostExitReason(string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        _value = value;
+    }
+
+    /// <summary>Gets the value associated with this <see cref="HostExitReason"/>.</summary>
+    public string Value => _value ?? string.Empty;
+
+    /// <summary>The owner requested disposal.</summary>
+    public static HostExitReason Disposed { get; } = new("disposed");
+
+    /// <summary>The hosting task or its SDK transport exited; this does not mean the runtime process exited.</summary>
+    public static HostExitReason Exited { get; } = new("exited");
+
+    /// <summary>The owning SDK connection disconnected.</summary>
+    public static HostExitReason OwnerDisconnected { get; } = new("ownerDisconnected");
+
+    /// <summary>The runtime is shutting down.</summary>
+    public static HostExitReason RuntimeShutdown { get; } = new("runtimeShutdown");
+
+    /// <summary>Returns a value indicating whether two <see cref="HostExitReason"/> instances are equivalent.</summary>
+    public static bool operator ==(HostExitReason left, HostExitReason right) => left.Equals(right);
+
+    /// <summary>Returns a value indicating whether two <see cref="HostExitReason"/> instances are not equivalent.</summary>
+    public static bool operator !=(HostExitReason left, HostExitReason right) => !(left == right);
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is HostExitReason other && Equals(other);
+
+    /// <inheritdoc />
+    public bool Equals(HostExitReason other) => string.Equals(Value, other.Value, StringComparison.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => StringComparer.OrdinalIgnoreCase.GetHashCode(Value);
+
+    /// <inheritdoc />
+    public override string ToString() => Value;
+
+    /// <summary>Provides a <see cref="JsonConverter{HostExitReason}"/> for serializing <see cref="HostExitReason"/> instances.</summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public sealed class Converter : JsonConverter<HostExitReason>
+    {
+        /// <inheritdoc />
+        public override HostExitReason Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            return new(GeneratedStringEnumJson.ReadValue(ref reader, typeToConvert));
+        }
+
+        /// <inheritdoc />
+        public override void Write(Utf8JsonWriter writer, HostExitReason value, JsonSerializerOptions options)
+        {
+            GeneratedStringEnumJson.WriteValue(writer, value.Value, typeof(HostExitReason));
+        }
+    }
+}
+
+
 /// <summary>Transport the runtime would otherwise use for this request. `http` (the default when absent) covers plain HTTP and SSE responses; `websocket` indicates a full-duplex message channel where each body chunk maps to one WebSocket message and the `binary` flag distinguishes text from binary frames. The SDK consumer uses this to decide whether to service the request with an HTTP client or a WebSocket client. It is the one piece of request metadata the consumer cannot reliably infer from the URL or headers alone.</summary>
 [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 [JsonConverter(typeof(Converter))]
@@ -39671,6 +39934,12 @@ public sealed class ServerRpc
         await CopilotClient.InvokeRpcAsync(_rpc, "registerExtensionLaunchProvider", [], cancellationToken);
     }
 
+    /// <summary>Host APIs.</summary>
+    public ServerHostApi Host =>
+        field ??
+        Interlocked.CompareExchange(ref field, new(_rpc), null) ??
+        field;
+
     /// <summary>Hooks APIs.</summary>
     public ServerHooksApi Hooks =>
         field ??
@@ -39802,6 +40071,110 @@ public sealed class ServerRpc
         field ??
         Interlocked.CompareExchange(ref field, new(_rpc), null) ??
         field;
+}
+
+/// <summary>Provides server-scoped Host APIs.</summary>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+public sealed class ServerHostApi
+{
+    private readonly JsonRpc _rpc;
+
+    internal ServerHostApi(JsonRpc rpc)
+    {
+        _rpc = rpc;
+    }
+
+    /// <summary>Publishes an attached resident session for this listener's lifetime without copying it.</summary>
+    /// <param name="hostId">Listener UUID returned by host.start.</param>
+    /// <param name="sessionId">Canonical runtime session ID attached to the listener's owning connection.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> to monitor for cancellation requests. The default is <see cref="CancellationToken.None"/>.</param>
+    /// <returns>The existing runtime identity and its resource on the listener.</returns>
+    public async Task<HostPublishSessionResult> PublishSessionAsync(string hostId, string sessionId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(hostId);
+        ArgumentNullException.ThrowIfNull(sessionId);
+
+        var request = new HostPublishSessionRequest { HostId = hostId, SessionId = sessionId };
+        return await CopilotClient.InvokeRpcAsync<HostPublishSessionResult>(_rpc, "host.publishSession", [request], cancellationToken);
+    }
+
+    /// <summary>Requests app-owned materialization over the owning SDK participant.</summary>
+    /// <param name="handoffId">Unique identity for this participation, independent of the session lifetime.</param>
+    /// <param name="config">Host-selected SDK creation or resume settings, without executable callbacks or tools.</param>
+    /// <param name="resume">Resume an app-owned durable session instead of creating a new session.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> to monitor for cancellation requests. The default is <see cref="CancellationToken.None"/>.</param>
+    /// <returns>The resident session the application has materialized on its own connection.</returns>
+    internal async Task<HostCreateSessionResult> CreateSessionAsync(string handoffId, IDictionary<string, JsonElement> config, bool? resume = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(handoffId);
+        ArgumentNullException.ThrowIfNull(config);
+
+        var request = new HostCreateSessionRequest { HandoffId = handoffId, Config = config, Resume = resume };
+        return await CopilotClient.InvokeRpcAsync<HostCreateSessionResult>(_rpc, "host.createSession", [request], cancellationToken);
+    }
+
+    /// <summary>Releases app ownership retention after AHP detaches.</summary>
+    /// <param name="handoffId">Identity of the participation to release without destroying the session.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> to monitor for cancellation requests. The default is <see cref="CancellationToken.None"/>.</param>
+    /// <returns>Empty acknowledgement for a completed host lifecycle operation.</returns>
+    internal async Task<HostReleaseSessionResult> ReleaseSessionAsync(string handoffId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(handoffId);
+
+        var request = new HostReleaseSessionRequest { HandoffId = handoffId };
+        return await CopilotClient.InvokeRpcAsync<HostReleaseSessionResult>(_rpc, "host.releaseSession", [request], cancellationToken);
+    }
+
+    /// <summary>Starts a connection-owned local AHP listener as a supervised SDK participant.</summary>
+    /// <param name="hostId">Caller-generated UUID identifying this connection-owned listener.</param>
+    /// <param name="hostname">Listener hostname. Defaults to 127.0.0.1; explicit non-loopback binds are allowed.</param>
+    /// <param name="port">Listener port. Omitted or zero requests an OS-allocated port.</param>
+    /// <param name="token">Nonempty connection token. Generated randomly when required and omitted.</param>
+    /// <param name="requireConnectionToken">Require token authentication (default true). Cannot be false with a token.</param>
+    /// <param name="sessionFactory">Ask the owning SDK application to materialize AHP sessions.</param>
+    /// <param name="resumeFactory">Ask the owning application to resume its durable AHP sessions.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> to monitor for cancellation requests. The default is <see cref="CancellationToken.None"/>.</param>
+    /// <returns>Listener readiness, returned only after binding and the supervised participant's SDK handshake.</returns>
+    public async Task<HostStartResult> StartAsync(string hostId, string? hostname = null, int? port = null, string? token = null, bool? requireConnectionToken = null, bool? sessionFactory = null, bool? resumeFactory = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(hostId);
+
+        var request = new HostStartRequest { HostId = hostId, Hostname = hostname, Port = port, Token = token, RequireConnectionToken = requireConnectionToken, SessionFactory = sessionFactory, ResumeFactory = resumeFactory };
+        return await CopilotClient.InvokeRpcAsync<HostStartResult>(_rpc, "host.start", [request], cancellationToken);
+    }
+
+    /// <summary>Stops a listener owned by this SDK connection and joins its cleanup without deleting sessions.</summary>
+    /// <param name="hostId">Listener UUID. Unknown or successfully stopped IDs are harmless.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> to monitor for cancellation requests. The default is <see cref="CancellationToken.None"/>.</param>
+    /// <returns>Empty acknowledgement for a completed host lifecycle operation.</returns>
+    public async Task<HostDisposeResult> DisposeAsync(string hostId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(hostId);
+
+        var request = new HostDisposeRequest { HostId = hostId };
+        return await CopilotClient.InvokeRpcAsync<HostDisposeResult>(_rpc, "host.dispose", [request], cancellationToken);
+    }
+
+    /// <summary>Returns listener settings only to the supervised hosting participant over its SDK connection.</summary>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> to monitor for cancellation requests. The default is <see cref="CancellationToken.None"/>.</param>
+    /// <returns>Normalized listener settings delivered only to the supervised hosting participant.</returns>
+    internal async Task<HostGetConfigurationResult> GetConfigurationAsync(CancellationToken cancellationToken = default)
+    {
+        return await CopilotClient.InvokeRpcAsync<HostGetConfigurationResult>(_rpc, "host.getConfiguration", [], cancellationToken);
+    }
+
+    /// <summary>Reports a supervised hosting participant's bound AHP endpoint after its SDK handshake.</summary>
+    /// <param name="address">Actual bound WebSocket URL.</param>
+    /// <param name="token">Configured secret token, absent when authentication is disabled.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> to monitor for cancellation requests. The default is <see cref="CancellationToken.None"/>.</param>
+    /// <returns>Empty acknowledgement for a completed host lifecycle operation.</returns>
+    internal async Task<HostReadyResult> ReadyAsync(string address, string? token = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(address);
+
+        var request = new HostReadyRequest { Address = address, Token = token };
+        return await CopilotClient.InvokeRpcAsync<HostReadyResult>(_rpc, "host.ready", [request], cancellationToken);
+    }
 }
 
 /// <summary>Provides server-scoped Hooks APIs.</summary>
@@ -45298,7 +45671,7 @@ public sealed class UiApi
     /// <param name="task">MCP task metadata.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> to monitor for cancellation requests. The default is <see cref="CancellationToken.None"/>.</param>
     /// <returns>The elicitation response (accept with form values, decline, or cancel).</returns>
-    public async Task<UIElicitationResponse> ElicitationAsync(string message, UIElicitationSchema requestedSchema, McpElicitationFormMode? mode = null, UIElicitationRequestMeta? _meta = null, McpTaskMetadata? task = null, CancellationToken cancellationToken = default)
+    public async Task<UIElicitationResponse> ElicitationAsync(string message, UIElicitationSchema requestedSchema, McpElicitationFormMode? mode = null, IDictionary<string, JsonElement>? _meta = null, McpTaskMetadata? task = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(message);
         ArgumentNullException.ThrowIfNull(requestedSchema);
@@ -47056,6 +47429,16 @@ internal static class ClientSessionApiRegistration
     }
 }
 
+/// <summary>Handles `host` client global API methods.</summary>
+[Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
+public interface IHostHandler
+{
+    /// <summary>Reports termination of a connection-owned host listener.</summary>
+    /// <param name="request">Reports a supervised listener's hosting-task termination and cleanup outcome.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> to monitor for cancellation requests. The default is <see cref="CancellationToken.None"/>.</param>
+    Task ExitedAsync(HostExitedRequest request, CancellationToken cancellationToken = default);
+}
+
 /// <summary>Handles `extensionLaunchProvider` client global API methods.</summary>
 [Experimental(global::GitHub.Copilot.Diagnostics.Experimental)]
 public interface IExtensionLaunchProviderHandler
@@ -47118,6 +47501,9 @@ public interface IInstallationsHandler
 /// <summary>Provides all client global API handler groups for a connection.</summary>
 public sealed class ClientGlobalApiHandlers
 {
+    /// <summary>Optional handler for Host client global API methods.</summary>
+    public IHostHandler? Host { get; set; }
+
     /// <summary>Optional handler for ExtensionLaunchProvider client global API methods.</summary>
     public IExtensionLaunchProviderHandler? ExtensionLaunchProvider { get; set; }
 
@@ -47145,6 +47531,11 @@ internal static class ClientGlobalApiRegistration
     /// </summary>
     public static void RegisterClientGlobalApiHandlers(JsonRpc rpc, ClientGlobalApiHandlers handlers)
     {
+        rpc.SetLocalRpcMethod("host.exited", (Func<HostExitedRequest, CancellationToken, ValueTask>)(async (request, cancellationToken) =>
+        {
+            var handler = handlers.Host ?? throw new InvalidOperationException("No host client-global handler registered");
+            await handler.ExitedAsync(request, cancellationToken);
+        }), singleObjectParam: true);
         rpc.SetLocalRpcMethod("extensionLaunchProvider.resolve", (Func<ExtensionLaunchProviderResolveRequest, CancellationToken, ValueTask<ExtensionLaunchProviderResolveResult>>)(async (request, cancellationToken) =>
         {
             var handler = handlers.ExtensionLaunchProvider ?? throw new InvalidOperationException("No extensionLaunchProvider client-global handler registered");
@@ -47504,6 +47895,7 @@ internal static class ClientGlobalApiRegistration
 [JsonSerializable(typeof(GitHub.Copilot.SandboxEnforcementPoint), TypeInfoPropertyName = "SessionEventsSandboxEnforcementPoint")]
 [JsonSerializable(typeof(GitHub.Copilot.SandboxFilesystemPolicyDetails), TypeInfoPropertyName = "SessionEventsSandboxFilesystemPolicyDetails")]
 [JsonSerializable(typeof(GitHub.Copilot.SandboxOutcome), TypeInfoPropertyName = "SessionEventsSandboxOutcome")]
+[JsonSerializable(typeof(GitHub.Copilot.SandboxPermissiveSource), TypeInfoPropertyName = "SessionEventsSandboxPermissiveSource")]
 [JsonSerializable(typeof(GitHub.Copilot.SandboxPlatform), TypeInfoPropertyName = "SessionEventsSandboxPlatform")]
 [JsonSerializable(typeof(GitHub.Copilot.SandboxPolicySource), TypeInfoPropertyName = "SessionEventsSandboxPolicySource")]
 [JsonSerializable(typeof(GitHub.Copilot.SandboxProxyMode), TypeInfoPropertyName = "SessionEventsSandboxProxyMode")]
@@ -47856,6 +48248,20 @@ internal static class ClientGlobalApiRegistration
 [JsonSerializable(typeof(HistoryTruncateResult))]
 [JsonSerializable(typeof(HooksDiscoverRequest))]
 [JsonSerializable(typeof(HooksDiscoverResult))]
+[JsonSerializable(typeof(HostCreateSessionRequest))]
+[JsonSerializable(typeof(HostCreateSessionResult))]
+[JsonSerializable(typeof(HostDisposeRequest))]
+[JsonSerializable(typeof(HostDisposeResult))]
+[JsonSerializable(typeof(HostExitedRequest))]
+[JsonSerializable(typeof(HostGetConfigurationResult))]
+[JsonSerializable(typeof(HostPublishSessionRequest))]
+[JsonSerializable(typeof(HostPublishSessionResult))]
+[JsonSerializable(typeof(HostReadyRequest))]
+[JsonSerializable(typeof(HostReadyResult))]
+[JsonSerializable(typeof(HostReleaseSessionRequest))]
+[JsonSerializable(typeof(HostReleaseSessionResult))]
+[JsonSerializable(typeof(HostStartRequest))]
+[JsonSerializable(typeof(HostStartResult))]
 [JsonSerializable(typeof(IDictionary<string, JsonElement>))]
 [JsonSerializable(typeof(IDictionary<string, string>))]
 [JsonSerializable(typeof(IList<AccountAllUsers>))]
@@ -48606,9 +49012,7 @@ internal static class ClientGlobalApiRegistration
 [JsonSerializable(typeof(ToolsTaskCompleteEventDataRequest))]
 [JsonSerializable(typeof(ToolsUpdateSubagentSettingsResult))]
 [JsonSerializable(typeof(UIElicitationRequest))]
-[JsonSerializable(typeof(UIElicitationRequestMeta))]
 [JsonSerializable(typeof(UIElicitationResponse))]
-[JsonSerializable(typeof(UIElicitationResponseMeta))]
 [JsonSerializable(typeof(UIElicitationResult))]
 [JsonSerializable(typeof(UIElicitationSchema))]
 [JsonSerializable(typeof(UIEphemeralQueryRequest))]

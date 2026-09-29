@@ -37,6 +37,129 @@ verify all eight platforms.
 npm install @github/copilot-sdk
 ```
 
+## Runtime-supervised AHP host (experimental)
+
+`startAhpHost()` exposes copilotd's complete Agent Host Protocol server through the
+same runtime used by the SDK:
+
+```typescript
+import { CopilotClient } from "@github/copilot-sdk";
+
+await using client = new CopilotClient();
+await client.start();
+const host = await client.startAhpHost({
+    onExit: (exit) => {
+        if (exit.error) console.error(exit.error);
+    },
+});
+
+// Connect an AHP client using host.url and host.token.
+// Treat host.token as a secret; do not log it.
+
+// Existing SDK sessions and AHP sessions share this runtime.
+// Keep client alive while the listener is needed. Leaving this scope disposes
+// client, and the runtime stops its listener without a separate host.dispose().
+```
+
+The runtime hosts the complete AHP server in-process; the SDK does not launch a
+second runtime or relay the host's traffic. The host has its own SDK connection
+and belongs to the client connection that started it. Explicit disposal,
+connection loss, and runtime shutdown stop the listener and its hosting task
+without deleting underlying sessions. Reconnecting does not reclaim a host.
+The optional `onExit` callback reports exits at most once. If the owner connection
+is lost, it reports that loss rather than claiming that listener cleanup was
+acknowledged.
+
+`host.pid` is absent for in-process listeners. The optional field is retained
+for separate host process IDs returned by legacy runtimes, never the runtime PID.
+Use `dispose()` to stop the listener. `reason: "exited"` reports hosting-task
+failure, not runtime process death, and `exitCode` is absent. Hosting no longer
+provides process isolation from the runtime.
+
+The runtime validates listener options and applies their defaults:
+
+- `hostname` defaults to `127.0.0.1`. Set it explicitly to request a non-loopback
+  listener, such as `hostname: "0.0.0.0"`, and restrict network access appropriately.
+- `port` defaults to `0`, which selects an available port.
+- `requireConnectionToken` defaults to `true`. The runtime generates a random
+  token unless you supply a nonempty `token`.
+- Set `requireConnectionToken: false` to disable token authentication;
+  `host.token` is then undefined. A supplied `token` cannot be combined with
+  `requireConnectionToken: false`.
+
+The listener follows the owning client's lifetime. Call `await host.dispose()`
+only when you want to stop it earlier; `await using host` also supports a shorter
+scope. Each disposal call forwards to the runtime, which owns idempotent cleanup.
+The AHP transport remains owned by the host.
+
+### Application-owned sessions
+
+Supply `createSession` to materialize fresh AHP sessions in your application:
+
+```typescript
+import { approveAll, CopilotClient, defineTool } from "@github/copilot-sdk";
+
+await using client = new CopilotClient();
+await using host = await client.startAhpHost({
+    createSession: ({ config, signal }) => {
+        signal.throwIfAborted();
+        return client.createSession({
+            ...config,
+            onPermissionRequest: approveAll,
+            systemMessage: { mode: "append", content: "Use the app's greeting tool." },
+            tools: [defineTool("greeting", {
+                description: "Get the application's greeting",
+                parameters: { type: "object", properties: {} },
+                handler: () => "Hello from the application!",
+            })],
+        });
+    },
+    onSessionReleased: async (originalSession) => {
+        // Optional: the app decides whether to disconnect, keep, or destroy it.
+        await originalSession.disconnect();
+    },
+});
+```
+
+Preserve the supplied `config`, including its fresh session identity, workspace,
+and selected host settings. Add your prompt and tools where the host has not
+explicitly selected those settings; conflicting settings fail rather than
+silently advertising configuration that was not applied. Return a normal session
+created by this same client. The creation factory does not adopt an arbitrary existing
+session or expose unrelated application sessions in the AHP catalog.
+
+Only the session ID returns through ordinary SDK RPC. The host attaches to **that same
+resident session**, adding its own callback/tool registrations without replacing
+the application's prompt, tool filters, hooks, or tools. Application tool functions
+continue running in the app while their results stream through the existing AHP
+projector. No second application connection or function serialization is involved.
+
+The SDK retains the original returned object until participation ends and invokes
+`onSessionReleased` at most once per handoff, including attach failure, hosting-task exit,
+and owner disconnection. The SDK never automatically disconnects or destroys the
+app object. The creation callback receives an abort signal; materialization
+is bounded to 30 seconds and cancellation also releases objects returned late.
+Graceful host disposal waits for AHP detach before reporting release. Omitting
+`createSession` preserves copilotd-owned creation.
+
+To restore durable application-owned sessions, also supply `resumeSession`.
+It receives `{ sessionId, config, signal }` (`AhpSessionResumeRequest`).
+Return the object from this client's `resumeSession(sessionId, { ...config,
+onPermissionRequest, ... })`, restoring your tools, hooks, and handlers.
+Alternatively, return a retained original session from this client when it
+still matches the requested identity and workspace.
+Only catalog entries marked as application-owned invoke this callback.
+If the callback is missing, restoring such an entry fails instead of falling
+back to host-owned creation.
+Published resident sessions attach directly, without invoking it or replacing
+their current registrations. Resumed sessions follow the same original-object
+retention, cancellation, late-result release, and `onSessionReleased` rules.
+
+The `copilotd-hosting` library runs inside the runtime provider.
+Development integrations require a
+source-built launcher and provider (`COPILOT_RUNTIME_PROVIDER_LIB`). Older
+runtimes without these RPC operations cannot start a host.
+
 ## Run the Sample
 
 Try the interactive chat sample (from the repo root):

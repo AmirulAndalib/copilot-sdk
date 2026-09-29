@@ -129,6 +129,15 @@ fn sandbox_decision_variants_round_trip_full_event_envelopes() {
             "processName": "cat"
         }),
         serde_json::json!({
+            "kind": "access_recorded",
+            "control": "filesystem",
+            "outcome": "allowed",
+            "denialClass": "filesystem_write",
+            "permissiveSource": "policy",
+            "deniedResource": "fixtures/probe.txt",
+            "command": "touch fixtures/probe.txt"
+        }),
+        serde_json::json!({
             "kind": "bypass_decided",
             "control": "bypass",
             "outcome": "declined",
@@ -177,6 +186,7 @@ fn sandbox_decision_variants_round_trip_full_event_envelopes() {
             SandboxDecisionData::SpawnCompleted(_) => "spawn_completed",
             SandboxDecisionData::EnforcementState(_) => "enforcement_state",
             SandboxDecisionData::AccessDenied(_) => "access_denied",
+            SandboxDecisionData::AccessRecorded(_) => "access_recorded",
             SandboxDecisionData::BypassDecided(_) => "bypass_decided",
             SandboxDecisionData::PermissiveRetryDecided(_) => "permissive_retry_decided",
             SandboxDecisionData::PermissiveRetryCompleted(_) => "permissive_retry_completed",

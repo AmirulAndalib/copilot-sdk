@@ -37,6 +37,10 @@ dotnet run --file dotnet/samples/ManualToolResume.cs
 
 ## Quick Start
 
+For experimental in-process AHP hosting, use `client.StartAhpHostAsync(new AhpHostOptions { ... })`.
+See [runtime-supervised AHP hosting](../docs/runtime-supervised-host.md) for creation
+and resume callbacks, resident-session publication, ownership, and shared-snapshot E2Es.
+
 ```csharp
 using GitHub.Copilot;
 

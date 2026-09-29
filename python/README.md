@@ -73,6 +73,10 @@ python chat.py
 
 ## Quick Start
 
+For experimental in-process AHP hosting, use `client.start_ahp_host(AhpHostOptions(...))`.
+See [runtime-supervised AHP hosting](../docs/runtime-supervised-host.md) for creation
+and resume callbacks, resident-session publication, ownership, and shared-snapshot E2Es.
+
 ```python
 import asyncio
 

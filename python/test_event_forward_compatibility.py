@@ -125,6 +125,15 @@ class TestEventForwardCompatibility:
             ),
             (
                 "sandbox.decision",
+                "access_recorded",
+                {
+                    "denialClass": "filesystem_write",
+                    "permissiveSource": "policy",
+                    "deniedResource": "/example",
+                },
+            ),
+            (
+                "sandbox.decision",
                 "bypass_decided",
                 {"source": "user_prompted", "deniedResource": "/example"},
             ),

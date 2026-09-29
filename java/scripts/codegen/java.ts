@@ -1361,6 +1361,10 @@ export function schemaTypeToJava(
             return { javaType: nestedName, imports };
         }
         if (schema.additionalProperties) {
+            if (schema.additionalProperties === true) {
+                imports.add("java.util.Map");
+                return { javaType: "Map<String, Object>", imports };
+            }
             const valueSchema = typeof schema.additionalProperties === "object"
                 ? schema.additionalProperties as JSONSchema7
                 : { type: "object" } as JSONSchema7;
@@ -2656,6 +2660,7 @@ async function generateRpcDataClass(
 /** A single RPC method node parsed from the schema */
 interface RpcMethodNode {
     rpcMethod: string;
+    visibility: string;
     stability: string;
     deprecated: boolean;
     params: JSONSchema7 | null;
@@ -2677,6 +2682,7 @@ function buildNamespaceTree(node: Record<string, unknown>): NamespaceTree {
         if ("rpcMethod" in obj) {
             tree.methods.set(key, {
                 rpcMethod: String(obj.rpcMethod),
+                visibility: String(obj.visibility ?? "public"),
                 stability: String(obj.stability ?? "stable"),
                 deprecated: obj.deprecated === true,
                 params: (obj.params as JSONSchema7) ?? null,
@@ -2853,6 +2859,9 @@ function generateApiMethod(
     const hasSessionId = methodHasSessionId(method);
     const hasExtraParams = paramsClass !== null;
     const paramsOptional = hasExtraParams && methodParamsAreOptional(method);
+    // Supervised-participant host operations are not owner-client APIs. Keep this
+    // scoped to hosting rather than changing unrelated existing Java API exposure.
+    const access = method.visibility === "internal" && method.rpcMethod.startsWith("host.") ? "" : "public ";
     let needsMapper = false;
 
     const lines: string[] = [];
@@ -2886,7 +2895,7 @@ function generateApiMethod(
 
     if (paramsOptional) {
         pushJavadoc([`     * <p>`, `     * Invokes the method with no params, applying the runtime defaults.`], false);
-        lines.push(`    public CompletableFuture<${resultClass}> ${key}() {`);
+        lines.push(`    ${access}CompletableFuture<${resultClass}> ${key}() {`);
         lines.push(`        return ${key}(null);`);
         lines.push(`    }`);
         lines.push(``);
@@ -2896,9 +2905,9 @@ function generateApiMethod(
 
     // Signature
     if (hasExtraParams) {
-        lines.push(`    public CompletableFuture<${resultClass}> ${key}(${paramsClass} params) {`);
+        lines.push(`    ${access}CompletableFuture<${resultClass}> ${key}(${paramsClass} params) {`);
     } else {
-        lines.push(`    public CompletableFuture<${resultClass}> ${key}() {`);
+        lines.push(`    ${access}CompletableFuture<${resultClass}> ${key}() {`);
     }
 
     // Body

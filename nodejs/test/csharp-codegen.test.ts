@@ -178,6 +178,50 @@ describe("C# root event payload unions", () => {
 });
 
 describe("C# RPC codegen", () => {
+    it("preserves arbitrary JSON handoff settings instead of emitting an empty DTO", () => {
+        const code = generateRpcCode({
+            server: {
+                host: {
+                    createSession: {
+                        rpcMethod: "host.createSession",
+                        params: {
+                            type: "object",
+                            properties: {
+                                config: {
+                                    type: "object",
+                                    properties: {},
+                                    additionalProperties: true,
+                                },
+                            },
+                            required: ["config"],
+                        },
+                        result: { type: "null" },
+                    },
+                },
+            },
+        } as ApiSchema);
+        expect(code).toContain("IDictionary<string, JsonElement> Config");
+        expect(code).not.toContain("class HostCreateSessionParamsConfig");
+    });
+
+    it("maps nullable host authentication options to nullable booleans", () => {
+        const code = generateRpcCode({
+            server: {
+                host: {
+                    start: {
+                        rpcMethod: "host.start",
+                        params: {
+                            type: "object",
+                            properties: { requireConnectionToken: { type: ["boolean", "null"] } },
+                        },
+                        result: { type: "null" },
+                    },
+                },
+            },
+        } as ApiSchema);
+        expect(code).toContain("bool? RequireConnectionToken");
+    });
+
     it.each(["uninstall", "update"])(
         "separates the session wire envelope from the shared plugins %s request",
         (method) => {

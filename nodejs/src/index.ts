@@ -9,6 +9,13 @@
  */
 
 export { CopilotClient } from "./client.js";
+export {
+    AhpHost,
+    type AhpHostExit,
+    type AhpHostOptions,
+    type AhpSessionCreateRequest,
+    type AhpSessionResumeRequest,
+} from "./host.js";
 export { DisableBypassPermissionsModes, RuntimeConnection } from "./types.js";
 export { BuiltInTools, ToolSet } from "./toolSet.js";
 export { CopilotSession, type AssistantMessageEvent } from "./session.js";

@@ -449,6 +449,9 @@ function schemaTypeToCSharp(schema: JSONSchema7, required: boolean, knownTypes: 
             if (format === "date-time") return "DateTimeOffset?";
             return "string?";
         }
+        if (nonNullTypes.length === 1 && nonNullTypes[0] === "boolean") {
+            return "bool?";
+        }
         if (nonNullTypes.length === 1 && (nonNullTypes[0] === "number" || nonNullTypes[0] === "integer")) {
             if (format === "duration" && !isSecondsDurationPropertyName(propName)) {
                 return "TimeSpan?";
@@ -1790,6 +1793,10 @@ function getRpcUnionMatchExpression(schema: JSONSchema7, seenRefs: ReadonlySet<s
 function resolveRpcType(schema: JSONSchema7, isRequired: boolean, parentClassName: string, propName: string, classes: string[]): string {
     if (isOpaqueJson(schema)) {
         return isRequired ? "JsonElement" : "JsonElement?";
+    }
+    if (schema.type === "object" && schema.additionalProperties === true &&
+        (!schema.properties || Object.keys(schema.properties).length === 0)) {
+        return isRequired ? "IDictionary<string, JsonElement>" : "IDictionary<string, JsonElement>?";
     }
     // Handle $ref by resolving against schema definitions and generating the referenced class
     if (schema.$ref) {

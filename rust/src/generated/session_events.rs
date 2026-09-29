@@ -4898,6 +4898,35 @@ pub struct SandboxDecisionDataAccessDenied {
     pub tool_call_id: Option<String>,
 }
 
+/// Permissive learning mode (record and allow) recorded an access that the enforced policy would have refused, and allowed it. Emitted once per distinct recorded access of a record-and-allow run, bounded per command. The only per-access record of such a run: nothing was refused, so no `access_denied` is raised for it.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SandboxDecisionDataAccessRecorded {
+    /// Command that made the access. Populated only when content capture is enabled.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub command: Option<String>,
+    /// Sandbox control the access belongs to. Follows from `denialClass`.
+    pub control: SandboxControl,
+    /// Bounded class of the access the enforced policy would have refused.
+    pub denial_class: SandboxDenialClass,
+    /// Resource the enforced policy would have refused. Populated only when content capture is enabled.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub denied_resource: Option<String>,
+    /// Runtime subsystem that ran the command
+    pub enforcement_point: SandboxEnforcementPoint,
+    /// Sandbox decision variant discriminator.
+    pub kind: SandboxDecisionDataAccessRecordedKind,
+    /// Always `allowed`.
+    pub outcome: SandboxOutcome,
+    /// Why the run recorded and allowed instead of enforcing.
+    pub permissive_source: SandboxPermissiveSource,
+    /// Host operating-system family
+    pub platform: SandboxPlatform,
+    /// Tool call the access belongs to, for span correlation only. Never exported as a telemetry attribute or metric dimension.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_call_id: Option<String>,
+}
+
 /// A request to run outside the process sandbox was resolved. This is what makes an `inactive` `enforcement_state` readable: without it, a command that ran unsandboxed because a person approved a bypass looks identical to one that ran unsandboxed because the session never had a sandbox. Reported only when a sandbox was in force, since bypassing a disabled sandbox bypasses nothing. Carries neither backend nor attestation: the verdict comes from the runtime's own permission flow or the local escalation prompt, not from a containment backend and not from the built-in policy check, so `source` is what records where it came from.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -9650,7 +9679,7 @@ pub enum SandboxDecisionDataPolicyResolvedKind {
     PolicyResolved,
 }
 
-/// Finite result of a sandbox decision. Each `SandboxDecisionData` variant uses a disjoint subset: `policy_resolved` is `resolved | degraded`, `spawn_completed` and `permissive_retry_completed` are `succeeded | failed`, `enforcement_state` is `engaged | inactive | failed`, `access_denied` is `denied`, and escalation decisions are `approved | declined`.
+/// Finite result of a sandbox decision. Each `SandboxDecisionData` variant uses a disjoint subset: `policy_resolved` is `resolved | degraded`, `spawn_completed` and `permissive_retry_completed` are `succeeded | failed`, `enforcement_state` is `engaged | inactive | failed`, `access_denied` is `denied`, `access_recorded` is `allowed`, and escalation decisions are `approved | declined`.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SandboxOutcome {
     /// The sandbox policy resolved successfully. Describes configuration only and makes no claim that a backend engaged.
@@ -9680,6 +9709,9 @@ pub enum SandboxOutcome {
     /// A request to run outside the process sandbox was not granted.
     #[serde(rename = "declined")]
     Declined,
+    /// Permissive learning mode recorded an access the enforced policy would have refused, and allowed it.
+    #[serde(rename = "allowed")]
+    Allowed,
     /// Unknown variant for forward compatibility.
     #[default]
     #[serde(other)]
@@ -9853,6 +9885,29 @@ pub enum SandboxDecisionDataAccessDeniedKind {
 
 /// Sandbox decision variant discriminator.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SandboxDecisionDataAccessRecordedKind {
+    #[serde(rename = "access_recorded")]
+    #[default]
+    AccessRecorded,
+}
+
+/// Why a sandboxed run recorded and allowed its process-container access checks instead of enforcing them.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SandboxPermissiveSource {
+    /// A person approved the permissive retry for this command after a sandboxed attempt was blocked.
+    #[serde(rename = "approved_retry")]
+    ApprovedRetry,
+    /// Device-managed policy (`sandbox.learningMode: "allow"`) starts sandboxed shell commands in permissive learning mode.
+    #[serde(rename = "policy")]
+    Policy,
+    /// Unknown variant for forward compatibility.
+    #[default]
+    #[serde(other)]
+    Unknown,
+}
+
+/// Sandbox decision variant discriminator.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SandboxDecisionDataBypassDecidedKind {
     #[serde(rename = "bypass_decided")]
     #[default]
@@ -9901,6 +9956,7 @@ pub enum SandboxDecisionData {
     SpawnCompleted(SandboxDecisionDataSpawnCompleted),
     EnforcementState(SandboxDecisionDataEnforcementState),
     AccessDenied(SandboxDecisionDataAccessDenied),
+    AccessRecorded(SandboxDecisionDataAccessRecorded),
     BypassDecided(SandboxDecisionDataBypassDecided),
     PermissiveRetryDecided(SandboxDecisionDataPermissiveRetryDecided),
     PermissiveRetryCompleted(SandboxDecisionDataPermissiveRetryCompleted),

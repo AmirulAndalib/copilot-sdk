@@ -22,6 +22,20 @@ use crate::types::{RequestId, SessionEvent, SessionId};
 
 /// JSON-RPC method name constants.
 pub mod rpc_methods {
+    /// `host.publishSession`
+    pub const HOST_PUBLISHSESSION: &str = "host.publishSession";
+    /// `host.createSession`
+    pub const HOST_CREATESESSION: &str = "host.createSession";
+    /// `host.releaseSession`
+    pub const HOST_RELEASESESSION: &str = "host.releaseSession";
+    /// `host.start`
+    pub const HOST_START: &str = "host.start";
+    /// `host.dispose`
+    pub const HOST_DISPOSE: &str = "host.dispose";
+    /// `host.getConfiguration`
+    pub const HOST_GETCONFIGURATION: &str = "host.getConfiguration";
+    /// `host.ready`
+    pub const HOST_READY: &str = "host.ready";
     /// `ping`
     pub const PING: &str = "ping";
     /// `connect`
@@ -7838,6 +7852,282 @@ pub struct HooksDiscoverResult {
     pub hooks: Vec<DiscoveredHook>,
     /// Non-fatal source-loading warnings. Discovery remains complete for the affected source, although the source had a recoverable issue. Repository-settings warnings are prefixed with their project path when attribution is available.
     pub warnings: Vec<String>,
+}
+
+/// Normalized listener settings delivered only to the supervised hosting participant.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostConfiguration {
+    /// Hostname or IP address to bind.
+    pub hostname: String,
+    /// Port to bind, with zero requesting OS allocation.
+    pub port: i32,
+    /// Whether the listener requires token authentication.
+    pub require_connection_token: bool,
+    /// Whether app-owned durable sessions are resumed by the owning application.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resume_factory: Option<bool>,
+    /// Whether session materialization is delegated to the owning application.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_factory: Option<bool>,
+    /// Secret connection token, absent when authentication is disabled.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
+}
+
+/// Stops a connection-owned listener and joins its teardown.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostDisposeRequest {
+    /// Listener UUID. Unknown or successfully stopped IDs are harmless.
+    pub host_id: String,
+}
+
+/// Empty acknowledgement for a completed host lifecycle operation.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostEmptyResult {}
+
+/// Reports a supervised listener's hosting-task termination and cleanup outcome.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostExitedNotification {
+    /// Explicit startup or teardown failure, when present.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    /// Process exit status when available; absent for in-process listener tasks.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exit_code: Option<i64>,
+    /// Listener UUID.
+    pub host_id: String,
+    /// Cause of termination.
+    pub reason: HostExitReason,
+}
+
+/// Publishes a resident session attached to the listener's owning connection.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostPublishSessionRequest {
+    /// Listener UUID returned by host.start.
+    pub host_id: String,
+    /// Canonical runtime session ID attached to the listener's owning connection.
+    pub session_id: SessionId,
+}
+
+/// The existing runtime identity and its resource on the listener.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostPublishSessionResult {
+    /// Canonical runtime ID of the published session.
+    pub session_id: SessionId,
+    /// AHP resource URI for the session on this listener.
+    pub session_uri: String,
+}
+
+/// Readiness reported by the supervised hosting participant on its own SDK connection.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostReadyRequest {
+    /// Actual bound WebSocket URL.
+    pub address: String,
+    /// Configured secret token, absent when authentication is disabled.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
+}
+
+/// Listener-scoped registration, not a copy or durable adoption of a session.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostRegisterSessionRequest {
+    /// Additional directories already granted to the resident session.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub additional_directories: Option<Vec<String>>,
+    /// Session creation time in milliseconds since the Unix epoch, when available.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at_unix_ms: Option<i64>,
+    /// Last session modification time in milliseconds since the Unix epoch, when available.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modified_at_unix_ms: Option<i64>,
+    /// Canonical ID of the existing resident runtime session.
+    pub session_id: SessionId,
+    /// Current display title of the resident session, when available.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// Absolute working directory of the resident session.
+    pub working_directory: String,
+}
+
+/// Application callback routed over its existing SDK connection.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostSessionCreateCallback {
+    /// Host-selected SDK creation or resume settings, without executable callbacks or tools.
+    pub config: HashMap<String, serde_json::Value>,
+    /// Unique identity of the session participation being requested.
+    pub handoff_id: String,
+    /// Listener UUID identifying the owning application's host.
+    pub host_id: String,
+    /// Resume an app-owned durable session instead of creating a new session.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resume: Option<bool>,
+}
+
+/// One application-owned session handoff, requested by the supervised hosting participant.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostSessionCreateRequest {
+    /// Host-selected SDK creation or resume settings, without executable callbacks or tools.
+    pub config: HashMap<String, serde_json::Value>,
+    /// Unique identity for this participation, independent of the session lifetime.
+    pub handoff_id: String,
+    /// Resume an app-owned durable session instead of creating a new session.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resume: Option<bool>,
+}
+
+/// The resident session the application has materialized on its own connection.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostSessionCreateResult {
+    /// Runtime session UUID materialized on the application's SDK connection.
+    pub session_id: SessionId,
+}
+
+/// Releases the original application session object retained for one handoff.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostSessionReleasedNotification {
+    /// Identity of the handoff retaining the original application session object.
+    pub handoff_id: String,
+    /// Listener UUID whose application session participation ended.
+    pub host_id: String,
+}
+
+/// Ends one participation, not the application's session lifetime.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostSessionReleaseRequest {
+    /// Identity of the participation to release without destroying the session.
+    pub handoff_id: String,
+}
+
+/// Starts a supervised AHP listener in the runtime's configured working directory.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostStartRequest {
+    /// Caller-generated UUID identifying this connection-owned listener.
+    pub host_id: String,
+    /// Listener hostname. Defaults to 127.0.0.1; explicit non-loopback binds are allowed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hostname: Option<String>,
+    /// Listener port. Omitted or zero requests an OS-allocated port.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub port: Option<i32>,
+    /// Require token authentication (default true). Cannot be false with a token.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub require_connection_token: Option<bool>,
+    /// Ask the owning application to resume its durable AHP sessions.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resume_factory: Option<bool>,
+    /// Ask the owning SDK application to materialize AHP sessions.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_factory: Option<bool>,
+    /// Nonempty connection token. Generated randomly when required and omitted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
+}
+
+/// Listener readiness, returned only after binding and the supervised participant's SDK handshake.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostStartResult {
+    /// Caller-generated listener UUID.
+    pub host_id: String,
+    /// Separate host process ID, when provided by a legacy runtime. Absent for in-process listeners.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pid: Option<i64>,
+    /// Secret connection token, absent when authentication is disabled.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
+    /// Actual bound WebSocket URL, including the allocated port.
+    pub url: String,
 }
 
 /// Catalogue identity retained from a bound candidate or plan at installation time.
@@ -26956,6 +27246,85 @@ pub struct WorkspacesWriteAutopilotObjectiveResult {
     pub operation: String,
 }
 
+/// The resident session the application has materialized on its own connection.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostCreateSessionResult {
+    /// Runtime session UUID materialized on the application's SDK connection.
+    pub session_id: SessionId,
+}
+
+/// Empty acknowledgement for a completed host lifecycle operation.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostReleaseSessionResult {}
+
+/// Empty acknowledgement for a completed host lifecycle operation.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostDisposeResult {}
+
+/// Normalized listener settings delivered only to the supervised hosting participant.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostGetConfigurationResult {
+    /// Hostname or IP address to bind.
+    pub hostname: String,
+    /// Port to bind, with zero requesting OS allocation.
+    pub port: i32,
+    /// Whether the listener requires token authentication.
+    pub require_connection_token: bool,
+    /// Whether app-owned durable sessions are resumed by the owning application.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resume_factory: Option<bool>,
+    /// Whether session materialization is delegated to the owning application.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_factory: Option<bool>,
+    /// Secret connection token, absent when authentication is disabled.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
+}
+
+/// Empty acknowledgement for a completed host lifecycle operation.
+///
+/// <div class="warning">
+///
+/// **Experimental.** This type is part of an experimental wire-protocol surface
+/// and may change or be removed in future SDK or CLI releases.
+///
+/// </div>
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostReadyResult {}
+
 /// List of Copilot models available to the resolved user, including capabilities and billing metadata.
 ///
 /// <div class="warning">
@@ -37513,6 +37882,26 @@ pub enum HistoryRewindOutcome {
     /// Files and conversation were rewound, but obsolete file snapshots could not be removed; only conversation-and-files rewinds produce this.
     #[serde(rename = "snapshot-prune-failed")]
     SnapshotPruneFailed,
+    /// Unknown variant for forward compatibility.
+    #[default]
+    #[serde(other)]
+    Unknown,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum HostExitReason {
+    /// The owner requested disposal.
+    #[serde(rename = "disposed")]
+    Disposed,
+    /// The hosting task or its SDK transport exited; this does not mean the runtime process exited.
+    #[serde(rename = "exited")]
+    Exited,
+    /// The owning SDK connection disconnected.
+    #[serde(rename = "ownerDisconnected")]
+    OwnerDisconnected,
+    /// The runtime is shutting down.
+    #[serde(rename = "runtimeShutdown")]
+    RuntimeShutdown,
     /// Unknown variant for forward compatibility.
     #[default]
     #[serde(other)]

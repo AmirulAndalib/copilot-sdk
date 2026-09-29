@@ -16,6 +16,15 @@ import {
 } from "./java.js";
 import { RPC_VARIANT_OWNERS } from "./rpc-variant-owners.js";
 
+test("arbitrary handoff maps accept scalar and structured JSON values", () => {
+    const result = schemaTypeToJava(
+        { type: "object", additionalProperties: true },
+        true, "HostCreateSessionParams", "config", new Map(),
+    );
+    assert.equal(result.javaType, "Map<String, Object>");
+    assert.ok(result.imports.has("java.util.Map"));
+});
+
 test("preserves diagnostics configuration for session create and resume", async () => {
     const files = await renderRpcTypes({
         definitions: {

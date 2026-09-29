@@ -31,6 +31,10 @@ pub(crate) fn main() {
         }
     }
 
+    if std::env::var_os("CARGO_FEATURE_RUNTIME").is_none() {
+        return;
+    }
+
     if std::env::var_os("CARGO_FEATURE_LOCAL_RUNTIME").is_some()
         && std::env::var_os("CARGO_FEATURE_BUNDLED_CLI").is_none()
     {

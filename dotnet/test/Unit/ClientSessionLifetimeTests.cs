@@ -2940,6 +2940,18 @@ public sealed partial class ClientSessionLifetimeTests
                 },
                 "session.create" => CreateSessionResult(request),
                 "session.resume" => CreateSessionResult(request),
+                "host.start" => new Dictionary<string, object?>
+                {
+                    ["hostId"] = paramsElement.GetProperty("hostId").GetString(),
+                    ["url"] = "ws://127.0.0.1:12345",
+                    ["token"] = "test-token"
+                },
+                "host.dispose" => new Dictionary<string, object?>(),
+                "host.publishSession" => new Dictionary<string, object?>
+                {
+                    ["sessionId"] = paramsElement.GetProperty("sessionId").GetString(),
+                    ["sessionUri"] = "ahp-session:/" + paramsElement.GetProperty("sessionId").GetString()
+                },
                 "session.eventLog.registerInterest" => new Dictionary<string, object?>
                 {
                     ["id"] = "interest-1"
@@ -3091,6 +3103,10 @@ public sealed partial class ClientSessionLifetimeTests
 
                 case long longValue:
                     writer.WriteNumberValue(longValue);
+                    break;
+
+                case double doubleValue:
+                    writer.WriteNumberValue(doubleValue);
                     break;
 
                 case JsonElement jsonElement:

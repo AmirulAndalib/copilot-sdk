@@ -119,6 +119,7 @@ public class E2ETestContext implements AutoCloseable {
         // individual_pro user at context creation.
         Map<String, Object> defaultUser = new HashMap<>();
         defaultUser.put("login", "e2e-test-user");
+        defaultUser.put("id", 12345);
         defaultUser.put("copilot_plan", "individual_pro");
         defaultUser.put("endpoints", Map.of("api", proxyUrl, "telemetry", "https://localhost:1/telemetry"));
         defaultUser.put("analytics_tracking_id", "e2e-test-tracking-id");

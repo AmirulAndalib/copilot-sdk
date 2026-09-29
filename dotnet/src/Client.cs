@@ -556,6 +556,7 @@ public sealed partial class CopilotClient : IDisposable, IAsyncDisposable
     /// </example>
     public async Task StopAsync()
     {
+        DisconnectAhpHosts();
         List<Exception> errors = [];
         CancelPendingExternalTools();
 
@@ -603,6 +604,7 @@ public sealed partial class CopilotClient : IDisposable, IAsyncDisposable
     /// </example>
     public async Task ForceStopAsync()
     {
+        DisconnectAhpHosts();
         CancelPendingExternalTools();
         _sessions.Clear();
         ClearGitHubTokenProviders();
@@ -1379,6 +1381,7 @@ public sealed partial class CopilotClient : IDisposable, IAsyncDisposable
             session.SetOpenCanvases(response.OpenCanvases);
 
             await UpdateSessionOptionsForModeAsync(session, config, cancellationToken).ConfigureAwait(false);
+            CaptureAhpSession(session, request, ClientJsonContext.Default.CreateSessionRequest);
             if (registrationId is not null)
             {
                 session.SetGitHubTokenProviderRegistration(registrationId);
@@ -1586,6 +1589,7 @@ public sealed partial class CopilotClient : IDisposable, IAsyncDisposable
             }
 
             await UpdateSessionOptionsForModeAsync(session, config, cancellationToken).ConfigureAwait(false);
+            CaptureAhpSession(session, request, ClientJsonContext.Default.ResumeSessionRequest);
             if (registrationId is not null)
             {
                 session.SetGitHubTokenProviderRegistration(registrationId);
@@ -2732,6 +2736,7 @@ public sealed partial class CopilotClient : IDisposable, IAsyncDisposable
                 }
                 ClientGlobalApiRegistration.RegisterClientGlobalApiHandlers(rpc, _clientGlobalApis);
             }
+            RegisterAhpHandlers(rpc);
             if (cliProcess is not null)
             {
                 RegisterRpcProcessExit(cliProcess, rpc);
@@ -2817,6 +2822,7 @@ public sealed partial class CopilotClient : IDisposable, IAsyncDisposable
         {
             return;
         }
+        DisconnectAhpHosts();
         CancelPendingExternalTools();
     }
 
@@ -3379,6 +3385,11 @@ public sealed partial class CopilotClient : IDisposable, IAsyncDisposable
         NumberHandling = JsonNumberHandling.AllowReadingFromString,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonSerializable(typeof(CreateSessionRequest))]
+    [JsonSerializable(typeof(SessionConfig))]
+    [JsonSerializable(typeof(ResumeSessionConfig))]
+    [JsonSerializable(typeof(AhpMaterializeRequest))]
+    [JsonSerializable(typeof(AhpMaterializeResult))]
+    [JsonSerializable(typeof(AhpReleaseRequest))]
     [JsonSerializable(typeof(CreateSessionResponse))]
     [JsonSerializable(typeof(AutoModeSwitchRequest))]
     [JsonSerializable(typeof(AutoModeSwitchRequestResponse))]

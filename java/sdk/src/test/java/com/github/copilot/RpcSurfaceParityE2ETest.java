@@ -41,13 +41,15 @@ class RpcSurfaceParityE2ETest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final long TIMEOUT_SECONDS = 30;
-    private static final int EXPECTED_RPC_METHOD_COUNT = 441;
-    private static final String EXPECTED_RPC_SIGNATURE_SHA256 = "39b0aced7a065761af54df5e2cc728b218981c68b8b4933b369e56a6eed9259a";
+    private static final int EXPECTED_RPC_METHOD_COUNT = 444;
+    private static final String EXPECTED_RPC_SIGNATURE_SHA256 = "6e6130e145ea5d9d8892e02aa16211559c68f6164aff2f204d6da46c3d08a91a";
     private static final Map<String, Integer> EXPECTED_METHODS_BY_DECLARING_TYPE = Map.ofEntries(
             Map.entry("RpcCaller", 2), Map.entry("ServerAccountApi", 6), Map.entry("ServerAccountsApi", 1),
             Map.entry("ServerAgentRegistryApi", 1), Map.entry("ServerAgentsApi", 2), Map.entry("ServerCatalogApi", 3),
             Map.entry("ServerCommandsApi", 1), Map.entry("ServerExtensionsApi", 3), Map.entry("ServerHooksApi", 1),
-            Map.entry("ServerInstructionsApi", 2), Map.entry("ServerLlmInferenceApi", 3),
+            // Participant-only host methods are internal; owner
+            // start/dispose/publishSession retain capture coverage.
+            Map.entry("ServerHostApi", 3), Map.entry("ServerInstructionsApi", 2), Map.entry("ServerLlmInferenceApi", 3),
             Map.entry("ServerManagedSettingsApi", 2), Map.entry("ServerMcpApi", 7), Map.entry("ServerMcpConfigApi", 7),
             Map.entry("ServerMcpInstallationsApi", 4), Map.entry("ServerModelsApi", 3),
             Map.entry("ServerPluginsApi", 7), Map.entry("ServerPluginsBuiltinApi", 1),

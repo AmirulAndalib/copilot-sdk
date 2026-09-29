@@ -100,6 +100,13 @@ jobs:
           datadog-api-key: ${{ secrets.DATADOG_API_KEY }}
           datadog-site: ${{ vars.DATADOG_SITE || vars.DD_SITE }}
 
+      - name: Set up private source authentication
+        if: steps.cache.outputs.cache-hit != 'true' && github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: ./.github/actions/setup-private-source-auth
+        with:
+          client-id: ${{ vars.RUNTIME_ACCESSOR_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RUNTIME_ACCESSOR_APP_PRIVATE_KEY }}
+
       - name: Cache xwin downloads
         if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/cache@v6

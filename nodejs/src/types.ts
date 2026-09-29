@@ -2313,6 +2313,8 @@ export type AskUserVariant = "legacy" | "elicitation";
  * an existing one).
  */
 export interface SessionConfigBase {
+    /** Exact model IDs allowed by the host. Omission preserves runtime policy. */
+    allowedModels?: string[];
     /**
      * Client name to identify the application using the SDK.
      * Included in the User-Agent header for API requests.

@@ -1377,6 +1377,18 @@ public class ResumeSessionConfig {
     }
 
     /**
+     * Controls whether persisted pending work may continue on resume.
+     *
+     * @param continuePendingWork
+     *            explicit setting, or {@code null} for the default
+     * @return this config instance
+     */
+    public ResumeSessionConfig setContinuePendingWork(Boolean continuePendingWork) {
+        this.continuePendingWork = continuePendingWork;
+        return this;
+    }
+
+    /**
      * Sets whether to disable the session.resume event.
      * <p>
      * When true, the session.resume event is not emitted.

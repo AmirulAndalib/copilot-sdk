@@ -81,6 +81,34 @@ describe("ReplayingCapiProxy", () => {
     return yaml.parse(content) as NormalizedData;
   }
 
+  test("validates registered GitHub identities before replay configuration", async () => {
+    const proxy = new ReplayingCapiProxy("http://localhost");
+    proxy.setCopilotUserByToken("owner-token", { login: "owner", id: 42 });
+    proxy.setCopilotUserByToken("other-token", { login: "other", id: 99 });
+    proxy.setCopilotUserByToken("unresolved-token", { login: "unresolved" });
+    const address = await proxy.start();
+    try {
+      for (const [token, id, login] of [
+        ["owner-token", 42, "owner"],
+        ["other-token", 99, "other"],
+      ] as const) {
+        const response = await fetch(`${address}/user`, {
+          headers: { authorization: `Bearer ${token}` },
+        });
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({ id, login, type: "User" });
+      }
+      for (const token of ["unknown-token", "unresolved-token"]) {
+        const response = await fetch(`${address}/user`, {
+          headers: { authorization: `Bearer ${token}` },
+        });
+        expect(response.status).toBe(401);
+      }
+    } finally {
+      await proxy.stop();
+    }
+  });
+
   test("does not write file when no chat completion exchanges", async () => {
     const outputPath = path.join(tempDir, "output.yaml");
     const proxy = new ReplayingCapiProxy(
@@ -1729,6 +1757,53 @@ Always include PINEAPPLE_COCONUT_42.
           (JSON.parse(response.body) as ChatCompletion).choices[0].message
             .content,
         ).toBe("Paris is in France.");
+      } finally {
+        await proxy.stop();
+      }
+    });
+
+    test("streaming preserves tool choices from recorded multi-client traffic", async () => {
+      const proxy = new ReplayingCapiProxy("http://localhost:9999");
+      await proxy.updateConfig({
+        filePath: path.resolve(
+          __dirname,
+          "../snapshots/multi_client/both_clients_see_tool_request_and_completion_events.yaml",
+        ),
+        workDir,
+        backend: "capi",
+        replayOnly: true,
+      });
+      const proxyUrl = await proxy.start();
+      try {
+        const response = await makeRequest(proxyUrl, "/chat/completions", {
+          body: {
+            model: "claude-sonnet-5",
+            messages: [
+              { role: "system", content: "Application prompt" },
+              {
+                role: "user",
+                content:
+                  "Use the magic_number tool with seed 'hello' and tell me the result",
+              },
+            ],
+            stream: true,
+          },
+        });
+        expect(response.status).toBe(200);
+        const chunks = response.body
+          .split("\n")
+          .filter((line) => line.startsWith("data: {"))
+          .map((line) => JSON.parse(line.slice(6)) as ChatCompletionChunk);
+        const calls = chunks.flatMap(
+          (chunk) => chunk.choices[0].delta.tool_calls ?? [],
+        );
+        expect(calls.map((call) => call.function?.name)).toEqual([
+          "report_intent",
+          "magic_number",
+        ]);
+        expect(calls.map((call) => call.index)).toEqual([0, 1]);
+        expect(JSON.parse(calls[1].function!.arguments!)).toEqual({ seed: "hello" });
+        expect(chunks.at(-1)?.choices[0].finish_reason).toBe("tool_calls");
       } finally {
         await proxy.stop();
       }

@@ -5254,6 +5254,7 @@ public sealed partial class SkillContextDeliveredRefData
 [JsonDerivedType(typeof(SandboxDecisionDataSpawnCompleted), "spawn_completed")]
 [JsonDerivedType(typeof(SandboxDecisionDataEnforcementState), "enforcement_state")]
 [JsonDerivedType(typeof(SandboxDecisionDataAccessDenied), "access_denied")]
+[JsonDerivedType(typeof(SandboxDecisionDataAccessRecorded), "access_recorded")]
 [JsonDerivedType(typeof(SandboxDecisionDataBypassDecided), "bypass_decided")]
 [JsonDerivedType(typeof(SandboxDecisionDataPermissiveRetryDecided), "permissive_retry_decided")]
 [JsonDerivedType(typeof(SandboxDecisionDataPermissiveRetryCompleted), "permissive_retry_completed")]
@@ -9775,6 +9776,54 @@ public sealed partial class SandboxDecisionDataAccessDenied : SandboxDecisionDat
     public string? ProcessName { get; set; }
 
     /// <summary>Tool call the denial belongs to, for span correlation only. Never exported as a telemetry attribute or metric dimension.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("toolCallId")]
+    public string? ToolCallId { get; set; }
+}
+
+/// <summary>Permissive learning mode (record and allow) recorded an access that the enforced policy would have refused, and allowed it. Emitted once per distinct recorded access of a record-and-allow run, bounded per command. The only per-access record of such a run: nothing was refused, so no `access_denied` is raised for it.</summary>
+/// <remarks>The <c>access_recorded</c> variant of <see cref="SandboxDecisionData"/>.</remarks>
+public sealed partial class SandboxDecisionDataAccessRecorded : SandboxDecisionData
+{
+    /// <inheritdoc />
+    [JsonIgnore]
+    public override string Kind => "access_recorded";
+
+    /// <summary>Command that made the access. Populated only when content capture is enabled.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("command")]
+    public string? Command { get; set; }
+
+    /// <summary>Sandbox control the access belongs to. Follows from `denialClass`.</summary>
+    [JsonPropertyName("control")]
+    public required SandboxControl Control { get; set; }
+
+    /// <summary>Bounded class of the access the enforced policy would have refused.</summary>
+    [JsonPropertyName("denialClass")]
+    public required SandboxDenialClass DenialClass { get; set; }
+
+    /// <summary>Resource the enforced policy would have refused. Populated only when content capture is enabled.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("deniedResource")]
+    public string? DeniedResource { get; set; }
+
+    /// <summary>Runtime subsystem that ran the command.</summary>
+    [JsonPropertyName("enforcementPoint")]
+    public required SandboxEnforcementPoint EnforcementPoint { get; set; }
+
+    /// <summary>Always `allowed`.</summary>
+    [JsonPropertyName("outcome")]
+    public required SandboxOutcome Outcome { get; set; }
+
+    /// <summary>Why the run recorded and allowed instead of enforcing.</summary>
+    [JsonPropertyName("permissiveSource")]
+    public required SandboxPermissiveSource PermissiveSource { get; set; }
+
+    /// <summary>Host operating-system family.</summary>
+    [JsonPropertyName("platform")]
+    public required SandboxPlatform Platform { get; set; }
+
+    /// <summary>Tool call the access belongs to, for span correlation only. Never exported as a telemetry attribute or metric dimension.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("toolCallId")]
     public string? ToolCallId { get; set; }
@@ -17162,7 +17211,7 @@ public readonly struct SandboxEnforcementPoint : IEquatable<SandboxEnforcementPo
     }
 }
 
-/// <summary>Finite result of a sandbox decision. Each `SandboxDecisionData` variant uses a disjoint subset: `policy_resolved` is `resolved | degraded`, `spawn_completed` and `permissive_retry_completed` are `succeeded | failed`, `enforcement_state` is `engaged | inactive | failed`, `access_denied` is `denied`, and escalation decisions are `approved | declined`.</summary>
+/// <summary>Finite result of a sandbox decision. Each `SandboxDecisionData` variant uses a disjoint subset: `policy_resolved` is `resolved | degraded`, `spawn_completed` and `permissive_retry_completed` are `succeeded | failed`, `enforcement_state` is `engaged | inactive | failed`, `access_denied` is `denied`, `access_recorded` is `allowed`, and escalation decisions are `approved | declined`.</summary>
 [JsonConverter(typeof(Converter))]
 [DebuggerDisplay("{Value,nq}")]
 public readonly struct SandboxOutcome : IEquatable<SandboxOutcome>
@@ -17207,6 +17256,9 @@ public readonly struct SandboxOutcome : IEquatable<SandboxOutcome>
 
     /// <summary>A request to run outside the process sandbox was not granted.</summary>
     public static SandboxOutcome Declined { get; } = new("declined");
+
+    /// <summary>Permissive learning mode recorded an access the enforced policy would have refused, and allowed it.</summary>
+    public static SandboxOutcome Allowed { get; } = new("allowed");
 
     /// <summary>Returns a value indicating whether two <see cref="SandboxOutcome"/> instances are equivalent.</summary>
     public static bool operator ==(SandboxOutcome left, SandboxOutcome right) => left.Equals(right);
@@ -17657,6 +17709,67 @@ public readonly struct SandboxDenialClass : IEquatable<SandboxDenialClass>
         public override void Write(Utf8JsonWriter writer, SandboxDenialClass value, JsonSerializerOptions options)
         {
             GeneratedStringEnumJson.WriteValue(writer, value.Value, typeof(SandboxDenialClass));
+        }
+    }
+}
+
+/// <summary>Why a sandboxed run recorded and allowed its process-container access checks instead of enforcing them.</summary>
+[JsonConverter(typeof(Converter))]
+[DebuggerDisplay("{Value,nq}")]
+public readonly struct SandboxPermissiveSource : IEquatable<SandboxPermissiveSource>
+{
+    private readonly string? _value;
+
+    /// <summary>Initializes a new instance of the <see cref="SandboxPermissiveSource"/> struct.</summary>
+    /// <param name="value">The value to associate with this <see cref="SandboxPermissiveSource"/>.</param>
+    [JsonConstructor]
+    public SandboxPermissiveSource(string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        _value = value;
+    }
+
+    /// <summary>Gets the value associated with this <see cref="SandboxPermissiveSource"/>.</summary>
+    public string Value => _value ?? string.Empty;
+
+    /// <summary>A person approved the permissive retry for this command after a sandboxed attempt was blocked.</summary>
+    public static SandboxPermissiveSource ApprovedRetry { get; } = new("approved_retry");
+
+    /// <summary>Device-managed policy (`sandbox.learningMode: "allow"`) starts sandboxed shell commands in permissive learning mode.</summary>
+    public static SandboxPermissiveSource Policy { get; } = new("policy");
+
+    /// <summary>Returns a value indicating whether two <see cref="SandboxPermissiveSource"/> instances are equivalent.</summary>
+    public static bool operator ==(SandboxPermissiveSource left, SandboxPermissiveSource right) => left.Equals(right);
+
+    /// <summary>Returns a value indicating whether two <see cref="SandboxPermissiveSource"/> instances are not equivalent.</summary>
+    public static bool operator !=(SandboxPermissiveSource left, SandboxPermissiveSource right) => !(left == right);
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is SandboxPermissiveSource other && Equals(other);
+
+    /// <inheritdoc />
+    public bool Equals(SandboxPermissiveSource other) => string.Equals(Value, other.Value, StringComparison.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => StringComparer.OrdinalIgnoreCase.GetHashCode(Value);
+
+    /// <inheritdoc />
+    public override string ToString() => Value;
+
+    /// <summary>Provides a <see cref="JsonConverter{SandboxPermissiveSource}"/> for serializing <see cref="SandboxPermissiveSource"/> instances.</summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public sealed class Converter : JsonConverter<SandboxPermissiveSource>
+    {
+        /// <inheritdoc />
+        public override SandboxPermissiveSource Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            return new(GeneratedStringEnumJson.ReadValue(ref reader, typeToConvert));
+        }
+
+        /// <inheritdoc />
+        public override void Write(Utf8JsonWriter writer, SandboxPermissiveSource value, JsonSerializerOptions options)
+        {
+            GeneratedStringEnumJson.WriteValue(writer, value.Value, typeof(SandboxPermissiveSource));
         }
     }
 }
@@ -20687,6 +20800,7 @@ public readonly struct ExtensionsLoadedExtensionStatus : IEquatable<ExtensionsLo
 [JsonSerializable(typeof(SamplingRequestedEvent))]
 [JsonSerializable(typeof(SandboxDecisionData))]
 [JsonSerializable(typeof(SandboxDecisionDataAccessDenied))]
+[JsonSerializable(typeof(SandboxDecisionDataAccessRecorded))]
 [JsonSerializable(typeof(SandboxDecisionDataBypassDecided))]
 [JsonSerializable(typeof(SandboxDecisionDataEnforcementState))]
 [JsonSerializable(typeof(SandboxDecisionDataPermissiveRetryCompleted))]

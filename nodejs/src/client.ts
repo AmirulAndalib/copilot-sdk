@@ -18,7 +18,8 @@ import { isIPv6, Socket } from "node:net";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import {
     type CancellationToken,
-    createMessageConnection,
+    createMessageConnection as createRpcMessageConnection,
+    type DataCallback,
     ErrorCodes,
     type Message,
     MessageConnection,
@@ -44,6 +45,7 @@ import type {
 } from "./generated/rpc.js";
 import { getSdkProtocolVersion } from "./sdkProtocolVersion.js";
 import { CopilotSession } from "./session.js";
+import { AhpHost, type AhpHostExit, type AhpHostOptions } from "./host.js";
 import type { FfiRuntimeHost } from "./ffiRuntimeHost.js";
 import { ensureRuntimeBundle } from "./runtimeArtifacts.js";
 import { COPILOT_CLI_VERSION } from "./cliVersion.js";
@@ -111,6 +113,65 @@ interface ExtensionOrchestrationContributions {
  */
 const MIN_PROTOCOL_VERSION = 3;
 const RUNTIME_SHUTDOWN_TIMEOUT_MS = 10_000;
+
+type DrainingMessageConnection = MessageConnection & { drain: () => Promise<void> };
+
+function createMessageConnection(
+    reader: StreamMessageReader,
+    writer: StreamMessageWriter
+): DrainingMessageConnection {
+    let dispatch: DataCallback | undefined;
+    let finishDrain: (() => void) | undefined;
+    let drained: Promise<void> | undefined;
+    let disposed = false;
+    const barrier = { jsonrpc: "2.0", method: "$/sdkDrain" };
+    const connection = createRpcMessageConnection(
+        {
+            onError: reader.onError,
+            onClose: reader.onClose,
+            onPartialMessage: reader.onPartialMessage,
+            listen: (callback) => {
+                dispatch = callback;
+                return reader.listen(callback);
+            },
+            dispose: () => reader.dispose(),
+        },
+        writer,
+        undefined,
+        {
+            messageStrategy: {
+                handleMessage: (message, next) => {
+                    if (message === barrier) {
+                        finishDrain?.();
+                    } else {
+                        next(message);
+                    }
+                },
+            },
+        }
+    );
+    connection.onDispose(() => {
+        disposed = true;
+        finishDrain?.();
+    });
+    return Object.assign(connection, {
+        drain: () => {
+            if (!drained) {
+                drained = new Promise<void>((resolve) => {
+                    finishDrain = resolve;
+                    if (disposed || !dispatch) {
+                        resolve();
+                    } else {
+                        // A local queue barrier preserves every message parsed before EOF.
+                        // It is never sent on the wire or exposed to notification handlers.
+                        dispatch(barrier);
+                    }
+                });
+            }
+            return drained;
+        },
+    });
+}
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
     let timeout: ReturnType<typeof setTimeout> | undefined;
@@ -400,8 +461,8 @@ function getBundledRuntimePath(): Promise<string> {
  * A {@link StreamMessageWriter} that suppresses write failures while the client
  * is tearing down its transport.
  *
- * During `stop()`/`forceStop()` the runtime's end of the pipe can close while
- * vscode-jsonrpc still has an in-flight write — most commonly the
+ * During `stop()`/`forceStop()` or transport EOF the runtime's end of the pipe
+ * can close while vscode-jsonrpc still has an in-flight write — most commonly the
  * auto-generated response to a server→client request (tool/hook/userInput/LLM
  * inference handler) that resolved just before teardown. That write rejects
  * with `ERR_STREAM_DESTROYED`, and because the response write is internal to
@@ -429,7 +490,7 @@ export class CopilotClient {
     private cliStartTimeout: ReturnType<typeof setTimeout> | null = null;
     private cliProcess: ChildProcess | null = null;
     private ffiHost: FfiRuntimeHost | null = null;
-    private connection: MessageConnection | null = null;
+    private connection: DrainingMessageConnection | null = null;
     private requestAdapter: ReturnType<typeof createCopilotRequestAdapter> | null = null;
     private messageWriter: TeardownResilientStreamMessageWriter | null = null;
     private connectionClosed: boolean = false;
@@ -440,6 +501,20 @@ export class CopilotClient {
     /** Shared in-flight start; concurrent callers await it instead of spawning another CLI. */
     private startPromise: Promise<void> | null = null;
     private sessions: Map<string, CopilotSession> = new Map();
+    private hostExitCallbacks = new Map<string, (exit: AhpHostExit) => void>();
+    private hostSessionFactories = new Map<string, AhpHostOptions>();
+    private hostHandoffs = new Map<
+        string,
+        {
+            hostId: string;
+            requestedSessionId?: string;
+            controller: AbortController;
+            configs: Map<CopilotSession, SessionConfig>;
+            session?: CopilotSession;
+            released: boolean;
+            onReleased?: AhpHostOptions["onSessionReleased"];
+        }
+    >();
     private stderrBuffer: string = ""; // Captures CLI stderr for error messages
     /** Resolved connection mode chosen in the constructor. */
     private connectionConfig: InternalRuntimeConnection;
@@ -827,6 +902,11 @@ export class CopilotClient {
 
     private setupClientGlobalHandlers(): void {
         const handlers: import("./generated/rpc.js").ClientGlobalApiHandlers = {};
+        handlers.host = {
+            exited: async (exit) => {
+                this.handleHostExit(exit);
+            },
+        };
         handlers.extensionLaunchProvider = this.extensionLaunchProvider;
         if (this.requestHandler) {
             this.requestAdapter = createCopilotRequestAdapter(this.requestHandler, () => {
@@ -1241,6 +1321,7 @@ export class CopilotClient {
         this.runtimePort = null;
         this.stderrBuffer = "";
         this.processExitPromise = null;
+        this.disconnectHosts();
 
         return errors;
     }
@@ -1288,6 +1369,7 @@ export class CopilotClient {
      */
     async forceStop(): Promise<void> {
         this.forceStopping = true;
+        this.disconnectHosts();
 
         // Clear sessions immediately without trying to destroy them
         for (const session of this.sessions.values()) {
@@ -1668,6 +1750,7 @@ export class CopilotClient {
             const response = await this.connection!.sendRequest("session.create", {
                 ...(await getTraceContext(this.onGetTraceContext)),
                 model: config.model,
+                allowedModels: config.allowedModels,
                 sessionId: localSessionId,
                 clientName: config.clientName,
                 reasoningEffort: config.reasoningEffort,
@@ -1811,6 +1894,11 @@ export class CopilotClient {
             throw e;
         }
 
+        for (const entry of this.hostHandoffs.values()) {
+            if (entry.requestedSessionId === session.sessionId) {
+                entry.configs.set(session, config);
+            }
+        }
         return session;
     }
 
@@ -1939,6 +2027,7 @@ export class CopilotClient {
 
         try {
             const response = await this.connection!.sendRequest("session.resume", {
+                allowedModels: config.allowedModels,
                 ...(await getTraceContext(this.onGetTraceContext)),
                 sessionId,
                 clientName: config.clientName,
@@ -2091,7 +2180,244 @@ export class CopilotClient {
             throw e;
         }
 
+        for (const entry of this.hostHandoffs.values()) {
+            if (entry.requestedSessionId === session.sessionId) {
+                entry.configs.set(session, { ...config, sessionId });
+            }
+        }
         return session;
+    }
+
+    /**
+     * Start a complete AHP listener hosted in-process by this runtime.
+     *
+     * This connection owns the host. Disposing it or disconnecting the client
+     * stops the listener without deleting sessions. The host uses a separate
+     * SDK connection to the same runtime, not another runtime process.
+     * Only one AHP host may own the catalog in an effective Copilot home
+     * at a time. Other SDK clients and sessions remain usable in that home.
+     * The runtime validates listener options and defaults to 127.0.0.1 on an
+     * available port. `onExit` runs at most once; owner disconnection cannot
+     * acknowledge listener cleanup over the disconnected transport.
+     *
+     * @experimental
+     */
+    async startAhpHost(options: AhpHostOptions = {}): Promise<AhpHost> {
+        if (this.state !== "connected") {
+            await this.start();
+        }
+        const rpc = this.rpc;
+        const hostId = randomUUID();
+        const {
+            hostname,
+            port,
+            token,
+            requireConnectionToken,
+            onExit,
+            createSession,
+            resumeSession,
+            onSessionReleased,
+        } = options;
+        if (createSession || resumeSession) {
+            this.hostSessionFactories.set(hostId, {
+                createSession,
+                resumeSession,
+                onSessionReleased,
+            });
+        }
+        if (onExit) {
+            this.hostExitCallbacks.set(hostId, onExit);
+        }
+        try {
+            const info = await rpc.host.start({
+                hostId,
+                hostname,
+                port,
+                token,
+                requireConnectionToken,
+                sessionFactory: createSession ? true : undefined,
+                resumeFactory: resumeSession ? true : undefined,
+            });
+            return new AhpHost(
+                info,
+                async () => {
+                    await rpc.host.dispose({ hostId });
+                },
+                (sessionId) => rpc.host.publishSession({ hostId, sessionId })
+            );
+        } catch (error) {
+            this.hostExitCallbacks.delete(hostId);
+            this.releaseHostSessions(hostId);
+            throw error;
+        }
+    }
+
+    private handleHostExit(exit: AhpHostExit): void {
+        this.releaseHostSessions(exit.hostId);
+        const onExit = this.hostExitCallbacks.get(exit.hostId);
+        if (onExit) {
+            this.hostExitCallbacks.delete(exit.hostId);
+            const reportError = (error: unknown) => {
+                console.error("AHP host exit callback failed", { hostId: exit.hostId, error });
+            };
+            try {
+                void Promise.resolve(onExit(exit)).catch(reportError);
+            } catch (error) {
+                reportError(error);
+            }
+        }
+    }
+
+    private disconnectHosts(): void {
+        for (const hostId of new Set([
+            ...this.hostExitCallbacks.keys(),
+            ...this.hostSessionFactories.keys(),
+        ])) {
+            this.handleHostExit({
+                hostId,
+                reason: "ownerDisconnected",
+                error: "Owner connection closed; runtime cleanup cannot be acknowledged on this connection.",
+            });
+        }
+    }
+
+    private releaseHostSessions(hostId: string): void {
+        this.hostSessionFactories.delete(hostId);
+        for (const [handoffId, entry] of this.hostHandoffs) {
+            if (entry.hostId === hostId) this.releaseHostSession(handoffId);
+        }
+    }
+
+    private releaseHostSession(handoffId: string): void {
+        const entry = this.hostHandoffs.get(handoffId);
+        if (!entry) return;
+        this.hostHandoffs.delete(handoffId);
+        entry.released = true;
+        entry.configs.clear();
+        entry.controller.abort();
+        if (entry.session) this.notifyHostSessionReleased(entry);
+    }
+
+    private notifyHostSessionReleased(entry: {
+        session?: CopilotSession;
+        onReleased?: AhpHostOptions["onSessionReleased"];
+    }): void {
+        const { session, onReleased } = entry;
+        entry.session = undefined;
+        if (session && onReleased) {
+            try {
+                void Promise.resolve(onReleased(session)).catch(() => {
+                    console.error("AHP session release callback failed");
+                });
+            } catch {
+                console.error("AHP session release callback failed");
+            }
+        }
+    }
+
+    private async createHostSession(params: {
+        hostId: string;
+        handoffId: string;
+        resume?: boolean;
+        config: Omit<SessionConfig, "onPermissionRequest"> & { configDir?: string };
+    }): Promise<{ sessionId: string }> {
+        const options = this.hostSessionFactories.get(params.hostId);
+        if (
+            !(params.resume ? options?.resumeSession : options?.createSession) ||
+            this.hostHandoffs.has(params.handoffId)
+        ) {
+            throw new Error("AHP session factory is unavailable or handoff already exists");
+        }
+        const entry: {
+            hostId: string;
+            requestedSessionId?: string;
+            controller: AbortController;
+            configs: Map<CopilotSession, SessionConfig>;
+            session?: CopilotSession;
+            released: boolean;
+            onReleased?: AhpHostOptions["onSessionReleased"];
+        } = {
+            hostId: params.hostId,
+            requestedSessionId: params.config.sessionId,
+            controller: new AbortController(),
+            configs: new Map(),
+            released: false,
+            onReleased: options!.onSessionReleased,
+        };
+        this.hostHandoffs.set(params.handoffId, entry);
+        const { configDir, ...config } = params.config;
+        if (configDir !== undefined) config.configDirectory = configDir;
+        const expected = structuredClone(config);
+        const cancelled = new Promise<never>((_resolve, reject) => {
+            entry.controller.signal.addEventListener(
+                "abort",
+                () => {
+                    reject(new Error("AHP session handoff ended"));
+                },
+                { once: true }
+            );
+        });
+        const materialized = Promise.resolve()
+            .then(() => {
+                if (params.resume) {
+                    const { sessionId, ...resumeConfig } = config;
+                    if (!sessionId) throw new Error("AHP resume requires sessionId");
+                    return options!.resumeSession!({
+                        sessionId,
+                        config: resumeConfig,
+                        signal: entry.controller.signal,
+                    });
+                }
+                return options!.createSession!({
+                    config,
+                    signal: entry.controller.signal,
+                });
+            })
+            .then((session) => {
+                entry.session = session;
+                const actual = entry.configs.get(session);
+                entry.configs.clear();
+                if (entry.released) {
+                    this.notifyHostSessionReleased(entry);
+                    throw new Error("AHP session handoff ended");
+                }
+                if (
+                    this.sessions.get(session.sessionId) !== session ||
+                    session.sessionId !== expected.sessionId
+                ) {
+                    throw new Error(
+                        "AHP callback must return the requested session from this client"
+                    );
+                }
+                // Only host-selected keys constrain materialization. App prompt,
+                // filters and tools remain untouched when the host did not select them.
+                const contains = (value: unknown, required: unknown): boolean => {
+                    if (required && typeof required === "object" && !Array.isArray(required)) {
+                        return (
+                            !!value &&
+                            typeof value === "object" &&
+                            Object.entries(required).every(([key, child]) =>
+                                contains((value as Record<string, unknown>)[key], child)
+                            )
+                        );
+                    }
+                    return JSON.stringify(value) === JSON.stringify(required);
+                };
+                // Retained originals have no new materialization snapshot. Their
+                // resident workspace is checked by the runtime; do not reconfigure them.
+                if ((!params.resume || actual !== undefined) && !contains(actual, expected)) {
+                    throw new Error(
+                        "AHP callback must preserve the supplied session configuration"
+                    );
+                }
+                return { sessionId: session.sessionId };
+            });
+        try {
+            return await Promise.race([materialized, cancelled]);
+        } catch (error) {
+            this.releaseHostSession(params.handoffId);
+            throw error;
+        }
     }
 
     /**
@@ -2837,8 +3163,13 @@ export class CopilotClient {
             case "inprocess":
                 return this.connectViaFfi();
             case "tcp":
-            case "uri":
                 return this.connectViaTcp();
+            case "uri": {
+                const { host, port } = this.parseCliUrl(this.connectionConfig.url);
+                this.actualHost = host;
+                this.runtimePort = port;
+                return this.connectViaTcp();
+            }
         }
     }
 
@@ -3111,6 +3442,17 @@ export class CopilotClient {
                     confirmation.confirm(params, token)
             );
         }
+        this.connection.onRequest("host.materializeSession", (params) =>
+            this.createHostSession(params)
+        );
+        this.connection.onNotification(
+            "host.sessionReleased",
+            (params: { hostId: string; handoffId: string }) => {
+                if (this.hostHandoffs.get(params.handoffId)?.hostId === params.hostId) {
+                    this.releaseHostSession(params.handoffId);
+                }
+            }
+        );
 
         // `hooks.invoke` is an internal RPC method: the runtime calls it to
         // invoke a hook callback on the client. Route each call to the matching
@@ -3124,20 +3466,29 @@ export class CopilotClient {
         );
 
         const connection = this.connection;
+        const messageWriter = this.messageWriter;
         const markDisconnected = () => {
             if (this.connection !== connection) {
+                connection.dispose();
                 return;
             }
             this.connectionClosed = true;
             this.state = "disconnected";
+            this.disconnectHosts();
             for (const session of this.sessions.values()) {
                 session._markDisconnected();
             }
             this.sessions.clear();
             this.githubTokenProviders.clear();
             this.requestAdapter?.cancelPending();
+            connection.dispose();
         };
-        this.connection.onClose(markDisconnected);
+        this.connection.onClose(() => {
+            if (messageWriter) messageWriter.suppressWriteErrors = true;
+            // jsonrpc dispatches parsed messages asynchronously, one per event-loop
+            // turn. Drain them before clearing callbacks and rejecting unanswered RPCs.
+            void connection.drain().then(markDisconnected);
+        });
         this.connection.onError(() => {
             if (this.connection === connection) {
                 this.state = "disconnected";

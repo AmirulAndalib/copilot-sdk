@@ -119,6 +119,13 @@ from .generated.session_events import (
     SessionEvent,
     SessionEventType,
 )
+from .host import (
+    AhpHost,
+    AhpHostExit,
+    AhpHostOptions,
+    AhpSessionCreateRequest,
+    AhpSessionResumeRequest,
+)
 from .installation_confirmation import (
     InstallationConfirmationContext,
     InstallationConfirmationDecision,
@@ -241,6 +248,11 @@ except PackageNotFoundError:
     __version__ = "0.0.0.dev0"
 
 __all__ = [
+    "AhpHost",
+    "AhpHostExit",
+    "AhpHostOptions",
+    "AhpSessionCreateRequest",
+    "AhpSessionResumeRequest",
     "AgentMessageSource",
     "AgentStopHandler",
     "AgentStopHookInput",

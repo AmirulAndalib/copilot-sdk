@@ -50,6 +50,7 @@ def sdk_targets():
         "derive",
         "in-process",
         "local-runtime",
+        "runtime",
         "test-support",
     ]
 
@@ -95,6 +96,7 @@ def sdk_targets():
         crate_features = [
             "in-process",
             "local-runtime",
+            "runtime",
         ],
         crate_name = "github_copilot_sdk",
         crate_root = "src/lib.rs",
@@ -104,7 +106,7 @@ def sdk_targets():
             "--check-cfg=cfg(has_bundled_cli)",
             "--check-cfg=cfg(has_extracted_cli)",
             "--check-cfg=cfg(test)",
-            '--check-cfg=cfg(feature,values("bundled-cli","bundled-in-process","derive","in-process","local-runtime","test-support"))',
+            '--check-cfg=cfg(feature,values("bundled-cli","bundled-in-process","derive","in-process","local-runtime","runtime","test-support"))',
         ],
         visibility = ["//visibility:public"],
         deps = _LOCAL_RUNTIME_DEPS,

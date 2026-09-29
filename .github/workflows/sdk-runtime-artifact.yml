@@ -99,6 +99,17 @@ jobs:
           datadog-api-key: ${{ secrets.DATADOG_API_KEY }}
           datadog-site: ${{ vars.DATADOG_SITE || vars.DD_SITE }}
 
+      - name: Set up private source authentication
+        if: >-
+          github.actor != 'dependabot[bot]' &&
+          (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
+          inputs.runtime-source == 'checkout' &&
+          steps.cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/setup-private-source-auth
+        with:
+          client-id: ${{ vars.RUNTIME_ACCESSOR_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RUNTIME_ACCESSOR_APP_PRIVATE_KEY }}
+
       - name: Install the ARM64 strip tool
         if: inputs.runtime-source == 'checkout' && steps.cache.outputs.cache-hit != 'true' && runner.os == 'Linux' && endsWith(inputs.target, '-arm64')
         run: script/linux/apt-install.sh binutils-aarch64-linux-gnu

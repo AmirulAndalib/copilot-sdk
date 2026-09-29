@@ -59,6 +59,23 @@ dropping the last client remain immediate termination paths, not telemetry-flush
 guarantees. External servers and in-process hosts retain their existing shutdown
 behavior.
 
+### Externally supplied streams
+
+`default-features = false` builds an external-stream-only client: no runtime
+download, binary discovery, launch implementation, or native runtime embedding.
+Construct it with `Client::from_streams(reader, writer, cwd)` and explicitly call
+`client.verify_protocol_version().await?` to perform the normal SDK handshake.
+`Client::start` returns a configuration error in this build; it never falls back
+to an installed or cached runtime.
+
+The default `bundled-cli` feature still enables runtime management. To manage a
+runtime without embedding its bundle, use
+`default-features = false, features = ["runtime"]`. Existing users of unbundled
+`Client::start` should select this feature explicitly.
+The `in-process` and `local-runtime` features also enable runtime management;
+`local-runtime` continues to use application-supplied artifacts without downloading
+them. Enabling `bundled-cli` alongside `local-runtime` retains normal bundling.
+
 ## API Reference
 
 ### Client
@@ -113,6 +130,172 @@ transports.
 | `installation_confirmation_handler` | `Option<Arc<dyn InstallationConfirmationHandler>>` | Experimental connection-global human installation review |
 
 With the default `CliProgram::Resolve`, managed stdio and TCP transports resolve an explicit `CliProgram::Path(path)`, `COPILOT_CLI_PATH`, then the bundled `copilot-runtime` wrapper and adjacent `runtime.node`. In-process transport loads the native runtime library adjacent to that resolved runtime bundle. There is no PATH scanning.
+
+#### AHP listeners (experimental)
+
+`Client::start_ahp_host` is a thin wrapper over the generated `host.start`
+RPC. It is also available with `default-features = false`: the connected
+runtime owns and launches the listener, not the SDK.
+
+```rust,no_run
+use github_copilot_sdk::{AhpHostOptions, Client};
+
+# async fn example(client: &Client) -> Result<(), github_copilot_sdk::Error> {
+let host = client.start_ahp_host(
+    AhpHostOptions::default()
+        .with_hostname("127.0.0.1")
+        .with_port(0)
+        .with_on_exit(|exit| {
+            println!("host {} exited: {:?}", exit.host_id, exit.reason);
+        }),
+).await?;
+println!("{} (in-process host {})", host.url, host.host_id);
+// Supply host.token to AHP clients when present; never log it.
+host.dispose().await?;
+# Ok(())
+# }
+```
+
+`AhpHostOptions` has optional `hostname`, `port`, `token`,
+`require_connection_token`, and local-only `on_exit` fields, with matching
+`with_*` builders. Defaults and validation stay in the runtime: loopback hostname,
+an available port, and required connection-token authentication. Set
+`with_require_connection_token(false)` to disable token authentication; then
+`AhpHost::token` is `None`.
+
+The returned `AhpHost` exposes `host_id`, `url`, `pid`, and `token`.
+`pid` is `None` for in-process listeners; `Some(pid)` preserves a separate host
+process ID returned by a legacy runtime, never the runtime PID. Stop the
+in-process listener with `dispose()`. There is no
+process-isolation boundary between the host and runtime.
+Every explicit asynchronous `dispose()` call forwards `host.dispose`,
+including concurrent or repeated calls, and returns the runtime's result.
+There is no cached disposal, automatic retry, synthetic successful disposal, or closed
+future. Dropping a handle does not dispose it or spawn cleanup work.
+The owning `Client` connection controls runtime host lifetime; the handle
+does not keep that client alive.
+
+`on_exit` receives an `AhpHostExit`, whose
+`reason` is `AhpHostExitReason`. Registration precedes the start RPC so an
+early exit is observable. Delivery is at most once; callback panics are
+caught and logged. Start failure or cancellation releases registration.
+If a cancelled start later succeeds, the SDK sends `host.dispose` after receiving
+the start response so the listener is not orphaned.
+On owner connection loss (including `force_stop`), already-received runtime
+exit notifications are drained first. Each remaining callback receives
+`OwnerDisconnected`, no exit code, and an explanation that runtime cleanup
+cannot be acknowledged over the disconnected transport. This matches Node's
+`onExit`: it does not claim listener cleanup completed or send additional disposal RPCs.
+`Exited` reports hosting-task failure, not runtime process death; `exit_code` is `None`.
+Do not capture the owning `Client` or its sessions in `on_exit`: the stored
+closure would keep its own connection alive through a reference cycle. Send the
+exit through a channel to application code instead. The same restriction applies
+to session factories and release callbacks.
+
+See [Runtime-host integration tests](scripts/runtime-host-e2e.md) for source
+and assembled-candidate validation using the shared replay snapshots.
+
+##### Application-owned AHP sessions
+
+Like Node's `createSession` / `onSessionReleased`, Rust's experimental
+`with_create_session` / `with_on_session_released` let the application supply
+ordinary SDK sessions without replacing their tools, hooks, or event routing:
+
+```rust,no_run
+use std::sync::Arc;
+use github_copilot_sdk::{AhpHostOptions, AhpSessionRequest, Client};
+use github_copilot_sdk::handler::ApproveAllHandler;
+
+# async fn example(client: &Client) -> Result<(), github_copilot_sdk::Error> {
+let host = client.start_ahp_host(
+    AhpHostOptions::new()
+        .with_create_session(|request: AhpSessionRequest, client: Client| async move {
+            // Use this request-scoped client instead of capturing the owner.
+            // Preserve request.config; add your tools/hooks here.
+            let config = request.config
+                .with_permission_handler(Arc::new(ApproveAllHandler));
+            let session = Arc::new(client.create_session(config).await?);
+            // Retain an Arc in your application if it should outlive the handoff.
+            Ok(session)
+        })
+        .with_on_session_released(|original| {
+            println!("AHP released session {}", original.id());
+            // Any explicit disconnect/destroy is the application's decision.
+        }),
+).await?;
+host.dispose().await?;
+# Ok(())
+# }
+```
+
+The factory may also implement the async `AhpSessionFactory` trait. It receives
+an `AhpSessionRequest` containing a typed `SessionConfig` (no permission handler
+installed) and a cooperative `cancellation_token`. Preserve the supplied
+session ID, workspace, and host-selected configuration; create a **fresh**
+session using the provided client and return `Arc<session::Session>`. The SDK
+and runtime reject another client's session, a resumed wrapper, or changed
+host-selected settings. Application settings not selected by the host remain
+free to customize. The example's approve-all handler is for demonstrations,
+not an override for managed approval.
+
+For durable application-owned sessions, register `with_resume_session` with an
+async closure or an `AhpSessionResumeFactory` implementation. The closure receives
+an `AhpSessionResumeRequest` and request-scoped `Client`. Preserve its typed
+`ResumeSessionConfig`, restore application tools/hooks/handlers, and return
+`Arc::new(client.resume_session(config).await?)`. The request also carries a
+cooperative `cancellation_token`.
+The callback can instead return a retained original `Arc<Session>` from the
+owning client, subject to the same session identity and workspace checks.
+
+Only durable catalog entries marked as application-owned use this resume
+factory. Restoration fails if the callback is missing; it does not fall back
+to host-owned creation. Published resident sessions attach directly without invoking it or
+reconfiguring their current registrations. The SDK retains the exact returned
+`Arc` and applies the same cancellation, late completion, and release rules as
+fresh handoffs; it never automatically disconnects or destroys the result.
+
+The runtime's handoff deadline is 30 seconds. Cancellation signals the request
+token on release, host termination, or owner connection loss. Cancelling the
+child token does not stop the host/session. Factories should cooperate with
+cancellation, but a late successful return still triggers release with the
+**same original `Arc` allocation**, exactly once per handoff. Factory errors
+fail the AHP creation; factory and release-callback panics are contained.
+Release never automatically invokes `disconnect` or `destroy`. As with any
+Rust session, dropping its last `Arc` stops its local event loop, so retain a
+clone in application state to continue using it.
+
+The release closure is **synchronous**, like `on_exit`. The SDK invokes these
+closures on blocking workers, independently of its lossless internal host
+lifecycle queue, so a slow callback cannot block transport routing or lose
+another handoff's release. Applications choosing
+asynchronous cleanup can move the original `Arc` into their own task:
+
+```rust,no_run
+# use github_copilot_sdk::AhpHostOptions;
+let options = AhpHostOptions::new().with_on_session_released(|original| {
+    tokio::spawn(async move {
+        if let Err(error) = original.disconnect().await {
+            eprintln!("application session cleanup failed: {error}");
+        }
+    });
+});
+```
+
+Host disposal does not await application-spawned cleanup; retain/join the task
+in application state if shutdown must wait for it.
+
+Callback registrations are installed before `host.start` and removed on start
+failure/cancellation or host/owner termination. Original-session retention is
+owned by the application's `Client` handles, not by the shared connection:
+session-internal clients cannot form a retention cycle. Dropping the last
+owning client handle cancels pending factories and starts bounded host disposal
+before releasing their retained originals. Cleanup and release callbacks use the
+connection's originating Tokio runtime, even when the owner is dropped from
+an ordinary thread. No session `disconnect` or `destroy`
+is synthesized. An application-retained session still keeps its ordinary SDK
+connection alive and remains usable after the host detaches. Explicitly dispose
+hosts before dropping the client when shutdown must await cleanup. The in-process
+host remains a distinct participant on the same runtime and session.
 
 #### Extension launch provider
 
@@ -1227,14 +1410,15 @@ enabled, preserving bundled behavior for `--all-features` builds.
 `COPILOT_CLI_PATH` must point to the application's CLI entrypoint, with the
 compatible native runtime library next to it.
 
-For builds that prefer a smaller artifact, disable the `bundled-cli` feature:
+For managed transports without embedded artifacts, disable `bundled-cli` while
+enabling `runtime`:
 
 ```toml
-github-copilot-sdk = { version = "1", default-features = false }
+github-copilot-sdk = { version = "1", default-features = false, features = ["runtime"] }
 ```
 
 > **You become responsible for supplying the runtime at deployment.** With
-> `bundled-cli` disabled, the produced binary does not contain these artifacts
+> `runtime` enabled and `bundled-cli` disabled, the produced binary does not contain these artifacts
 > and will not search the system for them. For managed child-process transports,
 > supply a compatible wrapper pair via an explicit [`CliProgram::Path`].
 > `COPILOT_CLI_PATH` remains a direct program override.
@@ -1249,6 +1433,11 @@ github-copilot-sdk = { version = "1", default-features = false }
 > must either keep `bundled-cli` enabled or ship the runtime pair and set
 > `CliProgram::Path`.
 
+With no features enabled (`default-features = false` alone), the SDK is
+external-stream-only: `build.rs` does not acquire runtime artifacts. Use
+`Client::from_streams`; `Client::start` returns `InvalidConfig` even if an
+explicit program path is supplied.
+
 ### How it works
 
 1. **Version pin.** `build.rs` reads the CLI version from one of two sources:
@@ -1256,7 +1445,7 @@ github-copilot-sdk = { version = "1", default-features = false }
      (present in published crate tarballs and vendored slots).
    - Otherwise, `../nodejs/package.json` (contributor build inside the github/copilot-sdk repo).
 
-   The resolved version is baked into the crate via `cargo:rustc-env=COPILOT_SDK_CLI_VERSION` regardless of mode. The runtime resolver consumes it to recompute the on-disk path by convention, so no absolute paths leak into the rlib.
+   When SDK-managed acquisition is enabled, the resolved version is baked into the crate via `cargo:rustc-env=COPILOT_SDK_CLI_VERSION`. The runtime resolver consumes it to recompute the on-disk path by convention, so no absolute paths leak into the rlib.
 
 2. **Build time:** `build.rs` downloads the platform-specific full CLI archive
    and runtime package, then verifies both SHA-256 hashes against the release's
@@ -1269,14 +1458,16 @@ github-copilot-sdk = { version = "1", default-features = false }
      platform-native runtime library (`.dll`, `.so`, or `.dylib`).
    - **`local-runtime` on and `bundled-cli` off:** skips this acquisition step
      entirely because the application supplies the runtime package.
-   - **`bundled-cli` off:** downloads only the runtime package and extracts its
+   - **`runtime` off:** skips acquisition entirely; only externally supplied
+     streams are supported.
+   - **`runtime` on, `bundled-cli` and `local-runtime` off:** downloads only the runtime package and extracts its
      managed runtime artifacts directly into the platform cache using staging
      files and atomic renames.
 
 3. **Runtime:** embedded CLI artifacts and build-time-extracted hostless runtime
    artifacts use separate versioned namespaces:
 
-   | OS | `bundled-cli` on | `bundled-cli` off |
+   | OS | `bundled-cli` on | `runtime` on, `bundled-cli` and `local-runtime` off |
    |----|------------------|-------------------|
    | macOS | `~/Library/Caches/github-copilot-sdk/cli/<version>/` | `~/Library/Caches/github-copilot-sdk/runtime/<version>/` |
    | Linux | `${XDG_CACHE_HOME:-~/.cache}/github-copilot-sdk/cli/<version>/` | `${XDG_CACHE_HOME:-~/.cache}/github-copilot-sdk/runtime/<version>/` |
@@ -1300,7 +1491,7 @@ let options = ClientOptions::new()
 let client = Client::start(options).await?;
 ```
 
-With `bundled-cli` disabled the equivalent knob is the **`COPILOT_CLI_EXTRACT_DIR`** environment variable, which is honored symmetrically at build time (where `build.rs` writes the binary) and at runtime (where the resolver reads it). When set, the binary lives directly under the named directory (no per-version subdir). The most ergonomic way to pin it from a consumer crate is `.cargo/config.toml`:
+With `runtime` enabled and both `bundled-cli` and `local-runtime` disabled, the equivalent knob is the **`COPILOT_CLI_EXTRACT_DIR`** environment variable, which is honored symmetrically at build time (where `build.rs` writes the binary) and at runtime (where the resolver reads it). When set, the binary lives directly under the named directory (no per-version subdir). The most ergonomic way to pin it from a consumer crate is `.cargo/config.toml`:
 
 ```toml
 # .cargo/config.toml at the consumer's repo root
@@ -1324,12 +1515,12 @@ override for managed child-process consumers. It works regardless of the
 
 ### Resolution priority
 
-For managed child-process transports, `Client::start` resolves the program in this order:
+For managed child-process transports (`runtime` enabled), `Client::start` resolves the program in this order:
 
 1. Explicit `CliProgram::Path(path)` on `ClientOptions::program`.
 2. `COPILOT_CLI_PATH` environment variable, if it points at a real file.
 3. **`bundled-cli` on:** the embedded wrapper pair, lazily extracted on first call.
-4. **`bundled-cli` off:** the build-time-extracted wrapper pair in the per-user cache.
+4. **`bundled-cli` and `local-runtime` off:** the build-time-extracted wrapper pair in the per-user cache.
 
 In-process transport loads the native runtime library adjacent to the runtime
 wrapper selected from `COPILOT_CLI_PATH`, the embedded runtime archive, or the
@@ -1378,7 +1569,8 @@ In embed mode `build.rs` downloads both verified archives on every clean build
 by default. Set `BUNDLED_CLI_CACHE_DIR=<path>` to cache them between builds (CI
 keys this on `<os>-<version>` for near-zero-cost rebuilds on cache hits). For
 Copilot CLI 1.0.83-5, the two upstream archives total roughly 132-157 MB per
-platform before the runtime package is filtered. With `bundled-cli` disabled
+platform before the runtime package is filtered. With `runtime` enabled and both
+`bundled-cli` and `local-runtime` disabled,
 there is no separate archive cache: the extracted runtime bundle is the cache.
 
 ### Platforms
@@ -1392,7 +1584,8 @@ and `CARGO_CFG_TARGET_ENV` (cross-compilation works).
 
 | Feature | Default | Description |
 | ------- | ------- | ----------- |
-| `bundled-cli` | ✓ | Embeds the managed wrapper pair and compatible CLI artifact. Disable via `default-features = false` when supplying the runtime explicitly. |
+| `runtime` | ✓ (via `bundled-cli`) | Enables managed runtime startup and discovery. With no runtime feature, use `Client::from_streams`; no runtime artifacts are acquired. |
+| `bundled-cli` | ✓ | Enables `runtime` and embeds the managed wrapper pair and compatible CLI artifact. |
 | `in-process` | — | Enables `Transport::InProcess` while preserving the selected runtime acquisition policy. |
 | `local-runtime` | — | Enables `in-process` and, when `bundled-cli` is disabled, disables SDK-managed runtime download, extraction, and embedding. The application must supply a compatible runtime package through `COPILOT_CLI_PATH`. |
 | `bundled-in-process` | — | Enables `in-process`, implies `bundled-cli`, and additionally embeds the platform-native runtime library. |
@@ -1408,7 +1601,10 @@ github-copilot-sdk = { version = "1", features = ["bundled-in-process"] }
 # Enable the in-process transport with an application-supplied runtime.
 github-copilot-sdk = { version = "1", default-features = false, features = ["local-runtime"] }
 
-# Opt out of bundling — supply the CLI explicitly at runtime.
+# Opt out of bundling, but retain managed startup and build-machine runtime caching.
+github-copilot-sdk = { version = "1", default-features = false, features = ["runtime"] }
+
+# External streams only — no managed startup or runtime acquisition.
 github-copilot-sdk = { version = "1", default-features = false }
 
 # Derive JSON Schema for tool parameters (adds to default bundled-cli).

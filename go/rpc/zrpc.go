@@ -5078,6 +5078,261 @@ type HooksDiscoverResult struct {
 	Warnings []string `json:"warnings"`
 }
 
+// Normalized listener settings delivered only to the supervised hosting participant.
+// Experimental: HostConfiguration is part of an experimental API and may change or be
+// removed.
+type HostConfiguration struct {
+	// Hostname or IP address to bind.
+	Hostname string `json:"hostname"`
+	// Port to bind, with zero requesting OS allocation.
+	Port int32 `json:"port"`
+	// Whether the listener requires token authentication.
+	RequireConnectionToken bool `json:"requireConnectionToken"`
+	// Whether app-owned durable sessions are resumed by the owning application.
+	ResumeFactory *bool `json:"resumeFactory,omitempty"`
+	// Whether session materialization is delegated to the owning application.
+	SessionFactory *bool `json:"sessionFactory,omitempty"`
+	// Secret connection token, absent when authentication is disabled.
+	Token *string `json:"token,omitempty"`
+}
+
+// The resident session the application has materialized on its own connection.
+// Experimental: HostCreateSessionResult is part of an experimental API and may change or be
+// removed.
+type HostCreateSessionResult struct {
+	// Runtime session UUID materialized on the application's SDK connection.
+	SessionID string `json:"sessionId"`
+}
+
+// Stops a connection-owned listener and joins its teardown.
+// Experimental: HostDisposeRequest is part of an experimental API and may change or be
+// removed.
+type HostDisposeRequest struct {
+	// Listener UUID. Unknown or successfully stopped IDs are harmless.
+	HostID string `json:"hostId"`
+}
+
+// Empty acknowledgement for a completed host lifecycle operation.
+// Experimental: HostDisposeResult is part of an experimental API and may change or be
+// removed.
+type HostDisposeResult struct {
+}
+
+// Empty acknowledgement for a completed host lifecycle operation.
+// Experimental: HostEmptyResult is part of an experimental API and may change or be removed.
+type HostEmptyResult struct {
+}
+
+// Reports a supervised listener's hosting-task termination and cleanup outcome.
+// Experimental: HostExitedNotification is part of an experimental API and may change or be
+// removed.
+type HostExitedNotification struct {
+	// Explicit startup or teardown failure, when present.
+	Error *string `json:"error,omitempty"`
+	// Process exit status when available; absent for in-process listener tasks.
+	ExitCode *int64 `json:"exitCode,omitempty"`
+	// Listener UUID.
+	HostID string `json:"hostId"`
+	// Cause of termination.
+	Reason HostExitReason `json:"reason"`
+}
+
+// Experimental: HostExitedResult is part of an experimental API and may change or be
+// removed.
+type HostExitedResult struct {
+}
+
+// Normalized listener settings delivered only to the supervised hosting participant.
+// Experimental: HostGetConfigurationResult is part of an experimental API and may change or
+// be removed.
+type HostGetConfigurationResult struct {
+	// Hostname or IP address to bind.
+	Hostname string `json:"hostname"`
+	// Port to bind, with zero requesting OS allocation.
+	Port int32 `json:"port"`
+	// Whether the listener requires token authentication.
+	RequireConnectionToken bool `json:"requireConnectionToken"`
+	// Whether app-owned durable sessions are resumed by the owning application.
+	ResumeFactory *bool `json:"resumeFactory,omitempty"`
+	// Whether session materialization is delegated to the owning application.
+	SessionFactory *bool `json:"sessionFactory,omitempty"`
+	// Secret connection token, absent when authentication is disabled.
+	Token *string `json:"token,omitempty"`
+}
+
+// The resident session the application has materialized on its own connection.
+// Experimental: HostMaterializeSessionResult is part of an experimental API and may change
+// or be removed.
+type HostMaterializeSessionResult struct {
+	// Runtime session UUID materialized on the application's SDK connection.
+	SessionID string `json:"sessionId"`
+}
+
+// Publishes a resident session attached to the listener's owning connection.
+// Experimental: HostPublishSessionRequest is part of an experimental API and may change or
+// be removed.
+type HostPublishSessionRequest struct {
+	// Listener UUID returned by host.start.
+	HostID string `json:"hostId"`
+	// Canonical runtime session ID attached to the listener's owning connection.
+	SessionID string `json:"sessionId"`
+}
+
+// The existing runtime identity and its resource on the listener.
+// Experimental: HostPublishSessionResult is part of an experimental API and may change or
+// be removed.
+type HostPublishSessionResult struct {
+	// Canonical runtime ID of the published session.
+	SessionID string `json:"sessionId"`
+	// AHP resource URI for the session on this listener.
+	SessionURI string `json:"sessionUri"`
+}
+
+// Readiness reported by the supervised hosting participant on its own SDK connection.
+// Experimental: HostReadyRequest is part of an experimental API and may change or be
+// removed.
+type HostReadyRequest struct {
+	// Actual bound WebSocket URL.
+	Address string `json:"address"`
+	// Configured secret token, absent when authentication is disabled.
+	Token *string `json:"token,omitempty"`
+}
+
+// Empty acknowledgement for a completed host lifecycle operation.
+// Experimental: HostReadyResult is part of an experimental API and may change or be removed.
+type HostReadyResult struct {
+}
+
+// Listener-scoped registration, not a copy or durable adoption of a session.
+// Experimental: HostRegisterSessionRequest is part of an experimental API and may change or
+// be removed.
+type HostRegisterSessionRequest struct {
+	// Additional directories already granted to the resident session.
+	AdditionalDirectories []string `json:"additionalDirectories,omitzero"`
+	// Session creation time in milliseconds since the Unix epoch, when available.
+	CreatedAtUnixMs *int64 `json:"createdAtUnixMs,omitempty"`
+	// Last session modification time in milliseconds since the Unix epoch, when available.
+	ModifiedAtUnixMs *int64 `json:"modifiedAtUnixMs,omitempty"`
+	// Canonical ID of the existing resident runtime session.
+	SessionID string `json:"sessionId"`
+	// Current display title of the resident session, when available.
+	Title *string `json:"title,omitempty"`
+	// Absolute working directory of the resident session.
+	WorkingDirectory string `json:"workingDirectory"`
+}
+
+// The existing runtime identity and its resource on the listener.
+type HostRegisterSessionResult struct {
+	// Canonical runtime ID of the published session.
+	SessionID string `json:"sessionId"`
+	// AHP resource URI for the session on this listener.
+	SessionURI string `json:"sessionUri"`
+}
+
+// Empty acknowledgement for a completed host lifecycle operation.
+// Experimental: HostReleaseSessionResult is part of an experimental API and may change or
+// be removed.
+type HostReleaseSessionResult struct {
+}
+
+// Application callback routed over its existing SDK connection.
+// Experimental: HostSessionCreateCallback is part of an experimental API and may change or
+// be removed.
+type HostSessionCreateCallback struct {
+	// Host-selected SDK creation or resume settings, without executable callbacks or tools.
+	Config map[string]any `json:"config"`
+	// Unique identity of the session participation being requested.
+	HandoffID string `json:"handoffId"`
+	// Listener UUID identifying the owning application's host.
+	HostID string `json:"hostId"`
+	// Resume an app-owned durable session instead of creating a new session.
+	Resume *bool `json:"resume,omitempty"`
+}
+
+// One application-owned session handoff, requested by the supervised hosting participant.
+// Experimental: HostSessionCreateRequest is part of an experimental API and may change or
+// be removed.
+type HostSessionCreateRequest struct {
+	// Host-selected SDK creation or resume settings, without executable callbacks or tools.
+	Config map[string]any `json:"config"`
+	// Unique identity for this participation, independent of the session lifetime.
+	HandoffID string `json:"handoffId"`
+	// Resume an app-owned durable session instead of creating a new session.
+	Resume *bool `json:"resume,omitempty"`
+}
+
+// The resident session the application has materialized on its own connection.
+// Experimental: HostSessionCreateResult is part of an experimental API and may change or be
+// removed.
+type HostSessionCreateResult struct {
+	// Runtime session UUID materialized on the application's SDK connection.
+	SessionID string `json:"sessionId"`
+}
+
+// Releases the original application session object retained for one handoff.
+// Experimental: HostSessionReleasedNotification is part of an experimental API and may
+// change or be removed.
+type HostSessionReleasedNotification struct {
+	// Identity of the handoff retaining the original application session object.
+	HandoffID string `json:"handoffId"`
+	// Listener UUID whose application session participation ended.
+	HostID string `json:"hostId"`
+}
+
+// Experimental: HostSessionReleasedResult is part of an experimental API and may change or
+// be removed.
+type HostSessionReleasedResult struct {
+}
+
+// Ends one participation, not the application's session lifetime.
+// Experimental: HostSessionReleaseRequest is part of an experimental API and may change or
+// be removed.
+type HostSessionReleaseRequest struct {
+	// Identity of the participation to release without destroying the session.
+	HandoffID string `json:"handoffId"`
+}
+
+// Empty acknowledgement for a completed host lifecycle operation.
+// Experimental: HostShutdownResult is part of an experimental API and may change or be
+// removed.
+type HostShutdownResult struct {
+}
+
+// Starts a supervised AHP listener in the runtime's configured working directory.
+// Experimental: HostStartRequest is part of an experimental API and may change or be
+// removed.
+type HostStartRequest struct {
+	// Caller-generated UUID identifying this connection-owned listener.
+	HostID string `json:"hostId"`
+	// Listener hostname. Defaults to 127.0.0.1; explicit non-loopback binds are allowed.
+	Hostname *string `json:"hostname,omitempty"`
+	// Listener port. Omitted or zero requests an OS-allocated port.
+	Port *int32 `json:"port,omitempty"`
+	// Require token authentication (default true). Cannot be false with a token.
+	RequireConnectionToken *bool `json:"requireConnectionToken,omitempty"`
+	// Ask the owning application to resume its durable AHP sessions.
+	ResumeFactory *bool `json:"resumeFactory,omitempty"`
+	// Ask the owning SDK application to materialize AHP sessions.
+	SessionFactory *bool `json:"sessionFactory,omitempty"`
+	// Nonempty connection token. Generated randomly when required and omitted.
+	Token *string `json:"token,omitempty"`
+}
+
+// Listener readiness, returned only after binding and the supervised participant's SDK
+// handshake.
+// Experimental: HostStartResult is part of an experimental API and may change or be removed.
+type HostStartResult struct {
+	// Caller-generated listener UUID.
+	HostID string `json:"hostId"`
+	// Separate host process ID, when provided by a legacy runtime. Absent for in-process
+	// listeners.
+	Pid *int64 `json:"pid,omitempty"`
+	// Secret connection token, absent when authentication is disabled.
+	Token *string `json:"token,omitempty"`
+	// Actual bound WebSocket URL, including the allocated port.
+	URL string `json:"url"`
+}
+
 // Catalogue identity retained from a bound candidate or plan at installation time.
 // Experimental: InstallationCatalogueIdentity is part of an experimental API and may change
 // or be removed.
@@ -5167,25 +5422,6 @@ type InstallationReviewSkill struct {
 func (InstallationReviewSkill) installationReview() {}
 func (InstallationReviewSkill) Resource() InstallationReviewResource {
 	return InstallationReviewResourceSkill
-}
-
-// One connection-owned, expiring request for a trusted host's explicit user decision.
-// Experimental: InstallationsConfirmRequest is part of an experimental API and may change
-// or be removed.
-type InstallationsConfirmRequest struct {
-	// Opaque one-use challenge. Return unchanged; never log or persist.
-	ConfirmationID string `json:"confirmationId"`
-	// Original plan expiry as an ISO 8601 timestamp. Confirmation never extends it.
-	ExpiresAt string `json:"expiresAt"`
-	// Random identifier of this installation operation, not a plan handle.
-	OperationID string `json:"operationId"`
-	// Original engine-resolved selector for a bound operation, never a dispatch default.
-	// Bound MCP confirmation always includes it; correlate it with the original pending action.
-	PolicySessionID *string `json:"policySessionId,omitempty"`
-	// Resource-specific review to present before collecting the user's decision.
-	Review InstallationReview `json:"review"`
-	// Opaque commitment to the exact review and inputs. Return unchanged; never log.
-	ReviewFingerprint string `json:"reviewFingerprint"`
 }
 
 // A response is meaningful only on the connection and request that issued its challenge.
@@ -21909,6 +22145,21 @@ const (
 	HookTypeUserPromptTransformed HookType = "userPromptTransformed"
 )
 
+// Experimental: HostExitReason is part of an experimental API and may change or be removed.
+type HostExitReason string
+
+const (
+	// The owner requested disposal.
+	HostExitReasonDisposed HostExitReason = "disposed"
+	// The hosting task or its SDK transport exited; this does not mean the runtime process
+	// exited.
+	HostExitReasonExited HostExitReason = "exited"
+	// The owning SDK connection disconnected.
+	HostExitReasonOwnerDisconnected HostExitReason = "ownerDisconnected"
+	// The runtime is shutting down.
+	HostExitReasonRuntimeShutdown HostExitReason = "runtimeShutdown"
+)
+
 // Live indexed-search state for this session activation, never inferred from persisted
 // history.
 // Experimental: IndexedSearchState is part of an experimental API and may change or be
@@ -25440,6 +25691,70 @@ func (a *ServerHooksAPI) Discover(ctx context.Context, params *HooksDiscoverRequ
 	return &result, nil
 }
 
+// Experimental: ServerHostAPI contains experimental APIs that may change or be removed.
+type ServerHostAPI serverAPI
+
+// Dispose stops a listener owned by this SDK connection and joins its cleanup without
+// deleting sessions.
+//
+// RPC method: host.dispose.
+//
+// Parameters: Stops a connection-owned listener and joins its teardown.
+//
+// Returns: Empty acknowledgement for a completed host lifecycle operation.
+func (a *ServerHostAPI) Dispose(ctx context.Context, params *HostDisposeRequest) (*HostDisposeResult, error) {
+	raw, err := a.client.Request(ctx, "host.dispose", params)
+	if err != nil {
+		return nil, err
+	}
+	var result HostDisposeResult
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// PublishSession publishes an attached resident session for this listener's lifetime
+// without copying it.
+//
+// RPC method: host.publishSession.
+//
+// Parameters: Publishes a resident session attached to the listener's owning connection.
+//
+// Returns: The existing runtime identity and its resource on the listener.
+func (a *ServerHostAPI) PublishSession(ctx context.Context, params *HostPublishSessionRequest) (*HostPublishSessionResult, error) {
+	raw, err := a.client.Request(ctx, "host.publishSession", params)
+	if err != nil {
+		return nil, err
+	}
+	var result HostPublishSessionResult
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// Starts a connection-owned local AHP listener as a supervised SDK participant.
+//
+// RPC method: host.start.
+//
+// Parameters: Starts a supervised AHP listener in the runtime's configured working
+// directory.
+//
+// Returns: Listener readiness, returned only after binding and the supervised participant's
+// SDK handshake.
+func (a *ServerHostAPI) Start(ctx context.Context, params *HostStartRequest) (*HostStartResult, error) {
+	raw, err := a.client.Request(ctx, "host.start", params)
+	if err != nil {
+		return nil, err
+	}
+	var result HostStartResult
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 // Experimental: ServerInstructionsAPI contains experimental APIs that may change or be
 // removed.
 type ServerInstructionsAPI serverAPI
@@ -27314,6 +27629,7 @@ type ServerRPC struct {
 	Commands        *ServerCommandsAPI
 	Extensions      *ServerExtensionsAPI
 	Hooks           *ServerHooksAPI
+	Host            *ServerHostAPI
 	Instructions    *ServerInstructionsAPI
 	LlmInference    *ServerLlmInferenceAPI
 	ManagedSettings *ServerManagedSettingsAPI
@@ -27380,6 +27696,7 @@ func NewServerRPC(client *jsonrpc2.Client) *ServerRPC {
 	r.Commands = (*ServerCommandsAPI)(&r.common)
 	r.Extensions = (*ServerExtensionsAPI)(&r.common)
 	r.Hooks = (*ServerHooksAPI)(&r.common)
+	r.Host = (*ServerHostAPI)(&r.common)
 	r.Instructions = (*ServerInstructionsAPI)(&r.common)
 	r.LlmInference = (*ServerLlmInferenceAPI)(&r.common)
 	r.ManagedSettings = (*ServerManagedSettingsAPI)(&r.common)
@@ -27428,6 +27745,97 @@ func (a *InternalServerAccountsAPI) AcquireEntraToken(ctx context.Context, param
 		return nil, err
 	}
 	return result, nil
+}
+
+// Experimental: InternalServerHostAPI contains experimental APIs that may change or be
+// removed.
+type InternalServerHostAPI internalServerAPI
+
+// CreateSession requests app-owned materialization over the owning SDK participant.
+//
+// RPC method: host.createSession.
+//
+// Parameters: One application-owned session handoff, requested by the supervised hosting
+// participant.
+//
+// Returns: The resident session the application has materialized on its own connection.
+// Internal: CreateSession is part of the SDK's internal handshake/plumbing; external
+// callers should not use it.
+func (a *InternalServerHostAPI) CreateSession(ctx context.Context, params *HostSessionCreateRequest) (*HostCreateSessionResult, error) {
+	raw, err := a.client.Request(ctx, "host.createSession", params)
+	if err != nil {
+		return nil, err
+	}
+	var result HostCreateSessionResult
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// GetConfiguration returns listener settings only to the supervised hosting participant
+// over its SDK connection.
+//
+// RPC method: host.getConfiguration.
+//
+// Returns: Normalized listener settings delivered only to the supervised hosting
+// participant.
+// Internal: GetConfiguration is part of the SDK's internal handshake/plumbing; external
+// callers should not use it.
+func (a *InternalServerHostAPI) GetConfiguration(ctx context.Context) (*HostGetConfigurationResult, error) {
+	raw, err := a.client.Request(ctx, "host.getConfiguration", nil)
+	if err != nil {
+		return nil, err
+	}
+	var result HostGetConfigurationResult
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// Ready reports a supervised hosting participant's bound AHP endpoint after its SDK
+// handshake.
+//
+// RPC method: host.ready.
+//
+// Parameters: Readiness reported by the supervised hosting participant on its own SDK
+// connection.
+//
+// Returns: Empty acknowledgement for a completed host lifecycle operation.
+// Internal: Ready is part of the SDK's internal handshake/plumbing; external callers should
+// not use it.
+func (a *InternalServerHostAPI) Ready(ctx context.Context, params *HostReadyRequest) (*HostReadyResult, error) {
+	raw, err := a.client.Request(ctx, "host.ready", params)
+	if err != nil {
+		return nil, err
+	}
+	var result HostReadyResult
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ReleaseSession releases app ownership retention after AHP detaches.
+//
+// RPC method: host.releaseSession.
+//
+// Parameters: Ends one participation, not the application's session lifetime.
+//
+// Returns: Empty acknowledgement for a completed host lifecycle operation.
+// Internal: ReleaseSession is part of the SDK's internal handshake/plumbing; external
+// callers should not use it.
+func (a *InternalServerHostAPI) ReleaseSession(ctx context.Context, params *HostSessionReleaseRequest) (*HostReleaseSessionResult, error) {
+	raw, err := a.client.Request(ctx, "host.releaseSession", params)
+	if err != nil {
+		return nil, err
+	}
+	var result HostReleaseSessionResult
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
 // Experimental: InternalServerSessionsAPI contains experimental APIs that may change or be
@@ -27603,6 +28011,7 @@ type InternalServerRPC struct {
 	common internalServerAPI
 
 	Accounts *InternalServerAccountsAPI
+	Host     *InternalServerHostAPI
 	Sessions *InternalServerSessionsAPI
 }
 
@@ -27639,6 +28048,7 @@ func NewInternalServerRPC(client *jsonrpc2.Client) *InternalServerRPC {
 	r := &InternalServerRPC{}
 	r.common = internalServerAPI{client: client}
 	r.Accounts = (*InternalServerAccountsAPI)(&r.common)
+	r.Host = (*InternalServerHostAPI)(&r.common)
 	r.Sessions = (*InternalServerSessionsAPI)(&r.common)
 	return r
 }
@@ -36816,6 +37226,47 @@ type HooksHandler interface {
 	Invoke(request *HookInvokeRequest) (*HookInvokeResponse, error)
 }
 
+// Experimental: HostHandler contains experimental APIs that may change or be removed.
+type HostHandler interface {
+	// Exited reports termination of a connection-owned host listener.
+	//
+	// RPC method: host.exited.
+	//
+	// Parameters: Reports a supervised listener's hosting-task termination and cleanup outcome.
+	Exited(request *HostExitedNotification) error
+	// MaterializeSession materializes an AHP session in the owning application.
+	//
+	// RPC method: host.materializeSession.
+	//
+	// Parameters: Application callback routed over its existing SDK connection.
+	//
+	// Returns: The resident session the application has materialized on its own connection.
+	MaterializeSession(request *HostSessionCreateCallback) (*HostMaterializeSessionResult, error)
+	// RegisterSession registers an existing resident session on the supervised listener without
+	// durable adoption.
+	//
+	// RPC method: host.registerSession.
+	//
+	// Parameters: Listener-scoped registration, not a copy or durable adoption of a session.
+	//
+	// Returns: The existing runtime identity and its resource on the listener.
+	RegisterSession(request *HostRegisterSessionRequest) (*HostPublishSessionResult, error)
+	// SessionReleased ends application object retention for an AHP participation.
+	//
+	// RPC method: host.sessionReleased.
+	//
+	// Parameters: Releases the original application session object retained for one handoff.
+	SessionReleased(request *HostSessionReleasedNotification) error
+	// Shutdown requests graceful shutdown of a supervised AHP listener and its clients.
+	//
+	// RPC method: host.shutdown.
+	//
+	// Parameters: Empty acknowledgement for a completed host lifecycle operation.
+	//
+	// Returns: Empty acknowledgement for a completed host lifecycle operation.
+	Shutdown(request *HostEmptyResult) (*HostShutdownResult, error)
+}
+
 // Experimental: InstallationsHandler contains experimental APIs that may change or be
 // removed.
 type InstallationsHandler interface {
@@ -36831,7 +37282,7 @@ type InstallationsHandler interface {
 	//
 	// Returns: A response is meaningful only on the connection and request that issued its
 	// challenge.
-	Confirm(request *InstallationsConfirmRequest) (*InstallationsConfirmResult, error)
+	Confirm(request *InstallationConfirmationRequest) (*InstallationsConfirmResult, error)
 }
 
 // Experimental: LlmInferenceHandler contains experimental APIs that may change or be
@@ -36874,6 +37325,7 @@ type ClientGlobalAPIHandlers struct {
 	GitHubTelemetry         GitHubTelemetryHandler
 	GitHubToken             GitHubTokenHandler
 	Hooks                   HooksHandler
+	Host                    HostHandler
 	Installations           InstallationsHandler
 	LlmInference            LlmInferenceHandler
 }
@@ -36959,8 +37411,88 @@ func RegisterClientGlobalAPIHandlers(client *jsonrpc2.Client, handlers *ClientGl
 		}
 		return raw, nil
 	})
+	client.SetRequestHandler("host.exited", func(params json.RawMessage) (json.RawMessage, *jsonrpc2.Error) {
+		var request HostExitedNotification
+		if err := json.Unmarshal(params, &request); err != nil {
+			return nil, &jsonrpc2.Error{Code: -32602, Message: fmt.Sprintf("Invalid params: %v", err)}
+		}
+		if handlers == nil || handlers.Host == nil {
+			return nil, nil
+		}
+		if err := handlers.Host.Exited(&request); err != nil {
+			return nil, clientGlobalHandlerError(err)
+		}
+		return nil, nil
+	})
+	client.SetRequestHandler("host.materializeSession", func(params json.RawMessage) (json.RawMessage, *jsonrpc2.Error) {
+		var request HostSessionCreateCallback
+		if err := json.Unmarshal(params, &request); err != nil {
+			return nil, &jsonrpc2.Error{Code: -32602, Message: fmt.Sprintf("Invalid params: %v", err)}
+		}
+		if handlers == nil || handlers.Host == nil {
+			return nil, &jsonrpc2.Error{Code: -32603, Message: "No host client-global handler registered"}
+		}
+		result, err := handlers.Host.MaterializeSession(&request)
+		if err != nil {
+			return nil, clientGlobalHandlerError(err)
+		}
+		raw, err := json.Marshal(result)
+		if err != nil {
+			return nil, &jsonrpc2.Error{Code: -32603, Message: fmt.Sprintf("Failed to marshal response: %v", err)}
+		}
+		return raw, nil
+	})
+	client.SetRequestHandler("host.registerSession", func(params json.RawMessage) (json.RawMessage, *jsonrpc2.Error) {
+		var request HostRegisterSessionRequest
+		if err := json.Unmarshal(params, &request); err != nil {
+			return nil, &jsonrpc2.Error{Code: -32602, Message: fmt.Sprintf("Invalid params: %v", err)}
+		}
+		if handlers == nil || handlers.Host == nil {
+			return nil, &jsonrpc2.Error{Code: -32603, Message: "No host client-global handler registered"}
+		}
+		result, err := handlers.Host.RegisterSession(&request)
+		if err != nil {
+			return nil, clientGlobalHandlerError(err)
+		}
+		raw, err := json.Marshal(result)
+		if err != nil {
+			return nil, &jsonrpc2.Error{Code: -32603, Message: fmt.Sprintf("Failed to marshal response: %v", err)}
+		}
+		return raw, nil
+	})
+	client.SetRequestHandler("host.sessionReleased", func(params json.RawMessage) (json.RawMessage, *jsonrpc2.Error) {
+		var request HostSessionReleasedNotification
+		if err := json.Unmarshal(params, &request); err != nil {
+			return nil, &jsonrpc2.Error{Code: -32602, Message: fmt.Sprintf("Invalid params: %v", err)}
+		}
+		if handlers == nil || handlers.Host == nil {
+			return nil, nil
+		}
+		if err := handlers.Host.SessionReleased(&request); err != nil {
+			return nil, clientGlobalHandlerError(err)
+		}
+		return nil, nil
+	})
+	client.SetRequestHandler("host.shutdown", func(params json.RawMessage) (json.RawMessage, *jsonrpc2.Error) {
+		var request HostEmptyResult
+		if err := json.Unmarshal(params, &request); err != nil {
+			return nil, &jsonrpc2.Error{Code: -32602, Message: fmt.Sprintf("Invalid params: %v", err)}
+		}
+		if handlers == nil || handlers.Host == nil {
+			return nil, &jsonrpc2.Error{Code: -32603, Message: "No host client-global handler registered"}
+		}
+		result, err := handlers.Host.Shutdown(&request)
+		if err != nil {
+			return nil, clientGlobalHandlerError(err)
+		}
+		raw, err := json.Marshal(result)
+		if err != nil {
+			return nil, &jsonrpc2.Error{Code: -32603, Message: fmt.Sprintf("Failed to marshal response: %v", err)}
+		}
+		return raw, nil
+	})
 	client.SetRequestHandler("installations.confirm", func(params json.RawMessage) (json.RawMessage, *jsonrpc2.Error) {
-		var request InstallationsConfirmRequest
+		var request InstallationConfirmationRequest
 		if err := json.Unmarshal(params, &request); err != nil {
 			return nil, &jsonrpc2.Error{Code: -32602, Message: fmt.Sprintf("Invalid params: %v", err)}
 		}

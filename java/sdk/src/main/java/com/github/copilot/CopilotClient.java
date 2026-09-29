@@ -121,6 +121,7 @@ public final class CopilotClient implements AutoCloseable {
     private final CliServerManager serverManager;
     private final LifecycleEventManager lifecycleManager = new LifecycleEventManager();
     private final Map<String, CopilotSession> sessions = new ConcurrentHashMap<>();
+    private final AhpHostManager ahpHosts;
     private final GitHubTokenProviderRegistry gitHubTokenProviders = new GitHubTokenProviderRegistry();
     private volatile CompletableFuture<Connection> connectionFuture;
     private volatile boolean disposed = false;
@@ -236,6 +237,7 @@ public final class CopilotClient implements AutoCloseable {
 
         InternalExecutorProvider executorProvider = new InternalExecutorProvider(this.options.getExecutor());
         this.executor = executorProvider.get();
+        this.ahpHosts = new AhpHostManager(sessions, executor);
         this.executorCanBeShutdown = executorProvider.canBeShutdown();
 
         this.serverManager = new CliServerManager(this.options);
@@ -561,6 +563,7 @@ public final class CopilotClient implements AutoCloseable {
             RpcHandlerDispatcher dispatcher = new RpcHandlerDispatcher(sessions, lifecycleManager::dispatch, executor,
                     gitHubTokenProviders);
             dispatcher.registerHandlers(connectedRpc);
+            ahpHosts.register(connectedRpc);
 
             // Register the LLM inference request handler when configured.
             com.github.copilot.CopilotRequestHandler requestHandler = this.options.getRequestHandler();
@@ -583,6 +586,7 @@ public final class CopilotClient implements AutoCloseable {
             }
             InstallationConfirmationAdapter connectedInstallationConfirmationAdapter = installationConfirmationAdapter;
             connectedRpc.setCloseHandler(() -> {
+                ahpHosts.disconnect(connection.serverRpc().host);
                 sessions.values().forEach(CopilotSession::cancelPendingExternalTools);
                 if (connectedLlmAdapter != null) {
                     connectedLlmAdapter.cancelPending();
@@ -749,6 +753,7 @@ public final class CopilotClient implements AutoCloseable {
      * @return A future that completes when the client is stopped
      */
     public CompletableFuture<Void> stop() {
+        ahpHosts.disconnect();
         var closeFutures = new ArrayList<CompletableFuture<Void>>();
 
         for (CopilotSession session : new ArrayList<>(sessions.values())) {
@@ -782,6 +787,7 @@ public final class CopilotClient implements AutoCloseable {
      * @return A future that completes when the client is stopped
      */
     public CompletableFuture<Void> forceStop() {
+        ahpHosts.disconnect();
         disposed = true;
         var activeSessions = new ArrayList<>(sessions.values());
         sessions.clear();
@@ -1106,6 +1112,7 @@ public final class CopilotClient implements AutoCloseable {
                                     "CopilotClient.createSession complete. Elapsed={Elapsed}, SessionId="
                                             + session.getSessionId(),
                                     totalNanos);
+                            ahpHosts.capture(session, request);
                             return session;
                         });
                     }).exceptionally(ex -> {
@@ -1289,6 +1296,7 @@ public final class CopilotClient implements AutoCloseable {
                                     } else {
                                         gitHubTokenProviders.retire(session.getSessionId());
                                     }
+                                    ahpHosts.capture(session, request);
                                     return session;
                                 });
                     }).exceptionally(ex -> {
@@ -1794,6 +1802,35 @@ public final class CopilotClient implements AutoCloseable {
      */
     public AutoCloseable onLifecycle(String eventType, SessionLifecycleHandler handler) {
         return lifecycleManager.subscribe(eventType, handler);
+    }
+
+    /**
+     * Starts an in-process AHP listener owned by this client's current connection.
+     * Application callbacks stay in this SDK process; no host executable is
+     * launched. If the returned future is cancelled, a listener that subsequently
+     * starts is disposed.
+     *
+     * @param options
+     *            listener options and optional application session factories
+     * @return a ready listener bound to its original transport
+     */
+    @CopilotExperimental
+    public CompletableFuture<AhpHost> startAhpHost(AhpHostOptions options) {
+        var result = new CompletableFuture<AhpHost>();
+        ensureConnected().thenCompose(connection -> result.isDone()
+                ? CompletableFuture.<AhpHost>failedFuture(new java.util.concurrent.CancellationException())
+                : ahpHosts.start(connection.serverRpc().host, options)).whenComplete((host, error) -> {
+                    if (error != null) {
+                        result.completeExceptionally(error);
+                    } else if (!result.complete(host)) {
+                        host.dispose().whenComplete((ignored, cleanupError) -> {
+                            if (cleanupError != null) {
+                                LOG.log(Level.WARNING, "AHP cancelled startup cleanup failed", cleanupError);
+                            }
+                        });
+                    }
+                });
+        return result;
     }
 
     private CompletableFuture<Connection> ensureConnected() {

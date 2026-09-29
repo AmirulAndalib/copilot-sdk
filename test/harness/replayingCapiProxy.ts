@@ -358,13 +358,17 @@ export class ReplayingCapiProxy extends CapturingHttpProxy {
           return;
         }
 
-        // Handle /copilot_internal/user endpoint for per-session auth.
+        // Handle Copilot auth and GitHub identity validation from the same
+        // registered credentials.
         // This must run before the state guard below: the CLI authenticates and
         // calls /copilot_internal/user at startup, which can race ahead of the
         // per-test POST /config (e.g. the Go harness spawns the CLI before the
         // first ConfigureForTest). The response only depends on the token map,
         // which is populated independently of `state`.
-        if (options.requestOptions.path === "/copilot_internal/user") {
+        if (
+          options.requestOptions.path === "/copilot_internal/user" ||
+          options.requestOptions.path === "/user"
+        ) {
           const headers = options.requestOptions.headers;
           const headerMap = headers as
             | Record<string, string | string[] | number | undefined>
@@ -384,9 +388,17 @@ export class ReplayingCapiProxy extends CapturingHttpProxy {
           // The CLI gates third-party MCP servers behind the copilot user's
           // `is_mcp_enabled` flag (a null/missing value disables them). Default
           // it to true so e2e MCP servers are enabled unless a test opts out.
-          const userResponse = registered
-            ? ({ is_mcp_enabled: true, ...registered } as CopilotUserResponse)
-            : undefined;
+          const userResponse =
+            options.requestOptions.path === "/user"
+              ? registered?.id !== undefined
+                ? { id: registered.id, login: registered.login, type: "User" }
+                : undefined
+              : registered
+                ? ({
+                    is_mcp_enabled: true,
+                    ...registered,
+                  } as CopilotUserResponse)
+                : undefined;
           if (userResponse) {
             const headers = {
               "content-type": "application/json",
@@ -1991,11 +2003,16 @@ const STREAM_CHUNK_SIZE = 200;
 function convertToStreamingResponseChunks(
   completion: ChatCompletion,
 ): ChatCompletionChunk[] {
-  const choice = completion.choices[0];
-  const content = choice.message.content ?? "";
-  const toolCalls = choice.message.tool_calls?.filter(
-    (tc): tc is ChatCompletionMessageFunctionToolCall => tc.type === "function",
-  );
+  // Recorded CAPI responses can use successive choices for one assistant turn.
+  // Preserve every choice, including tools following the opening text.
+  const content = completion.choices
+    .map((choice) => choice.message.content ?? "")
+    .join("");
+  const toolCalls = completion.choices
+    .flatMap((choice) => choice.message.tool_calls ?? [])
+    .filter(
+      (tc): tc is ChatCompletionMessageFunctionToolCall => tc.type === "function",
+    );
 
   const makeChunk = (
     delta: ChatCompletionChunk.Choice.Delta,
@@ -2046,7 +2063,9 @@ function convertToStreamingResponseChunks(
   if (chunks.length === 0) {
     chunks.push(makeChunk({ role: "assistant" }));
   }
-  chunks[chunks.length - 1].choices[0].finish_reason = choice.finish_reason;
+  chunks[chunks.length - 1].choices[0].finish_reason = toolCalls.length
+    ? "tool_calls"
+    : completion.choices.at(-1)?.finish_reason ?? "stop";
 
   return chunks;
 }
@@ -2101,6 +2120,8 @@ export type ToolResultNormalizer = {
  */
 export type CopilotUserResponse = {
   login: string;
+  /** Stable GitHub user ID returned by the identity-validation `/user` endpoint. */
+  id?: number;
   copilot_plan?: string;
   token_based_billing?: boolean;
   is_mcp_enabled?: boolean;

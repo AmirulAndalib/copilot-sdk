@@ -96,6 +96,7 @@ from .generated.session_events import (
     SessionEvent,
     session_event_from_dict,
 )
+from .host import AhpHost, AhpHostOptions, _AhpHostManager
 from .installation_confirmation import (
     InstallationConfirmationHandler,
     _InstallationConfirmationAdapter,
@@ -1781,6 +1782,9 @@ class CopilotClient:
         self._start_lock = asyncio.Lock()
         self._sessions: dict[str, CopilotSession] = {}
         self._sessions_lock = threading.Lock()
+        self._ahp_hosts = _AhpHostManager(
+            self._get_session, self.create_session, self.resume_session
+        )
         self._github_token_providers: dict[str, _GitHubTokenProviderRegistration] = {}
         self._github_token_providers_lock = threading.Lock()
         self._github_token_provider_adapter = _GitHubTokenProviderAdapter(self)
@@ -2096,6 +2100,7 @@ class CopilotClient:
         errors: list[StopError] = []
         if self._installation_confirmation_adapter is not None:
             self._installation_confirmation_adapter.close_connection()
+        self._ahp_hosts.disconnect()
         if self._llm_inference_adapter is not None:
             self._llm_inference_adapter.cancel_pending()
 
@@ -2247,6 +2252,7 @@ class CopilotClient:
         """
         if self._installation_confirmation_adapter is not None:
             self._installation_confirmation_adapter.close_connection()
+        self._ahp_hosts.disconnect()
         if self._llm_inference_adapter is not None:
             self._llm_inference_adapter.cancel_pending()
 
@@ -2746,7 +2752,7 @@ class CopilotClient:
         # Add working directory if provided
         if working_directory:
             payload["workingDirectory"] = working_directory
-        if additional_directories:
+        if additional_directories is not None:
             payload["additionalDirectories"] = additional_directories
 
         # Add streaming option if provided
@@ -3096,6 +3102,7 @@ class CopilotClient:
         self._commit_github_token_provider(
             session.session_id, github_token_provider_registration_id
         )
+        self._ahp_hosts.capture(session, payload)
 
         log_timing(
             logger,
@@ -3181,6 +3188,7 @@ class CopilotClient:
         github_token_provider: GitHubTokenProvider | None = None,
         remote_session: RemoteSessionMode | None = None,
         continue_pending_work: bool | None = None,
+        suppress_resume_event: bool | None = None,
         canvases: list[CanvasDeclaration] | None = None,
         request_canvas_renderer: bool | None = None,
         request_extensions: bool | None = None,
@@ -3341,6 +3349,8 @@ class CopilotClient:
                 tool calls or permission prompts that were still pending when the
                 session was last suspended. When False (the default), the runtime
                 treats pending work as interrupted on resume.
+            suppress_resume_event: When True, skips emitting the session.resume
+                event when attaching to an existing session. Defaults to False.
             feature_flags: Feature-flag values resolved by the host to apply
                 on resume. Sent on the wire as ``featureFlags``.
             exp_assignments: ExP assignment ("flight") data injected by a
@@ -3558,7 +3568,7 @@ class CopilotClient:
 
         if working_directory:
             payload["workingDirectory"] = working_directory
-        if additional_directories:
+        if additional_directories is not None:
             payload["additionalDirectories"] = additional_directories
         if config_directory:
             payload["configDir"] = config_directory
@@ -3582,7 +3592,9 @@ class CopilotClient:
         if continue_pending_work is not None:
             payload["continuePendingWork"] = continue_pending_work
 
-        # TODO: disable_resume is not a keyword arg yet; keeping for future use
+        if suppress_resume_event is not None:
+            payload["disableResume"] = suppress_resume_event
+
         if mcp_servers:
             payload["mcpServers"] = _mcp_servers_to_wire(mcp_servers)
         if diagnostics is not None:
@@ -3786,6 +3798,7 @@ class CopilotClient:
             included_builtin_skills,
         )
         self._commit_github_token_provider(session_id, github_token_provider_registration_id)
+        self._ahp_hosts.capture(session, payload)
 
         log_timing(
             logger,
@@ -3795,6 +3808,20 @@ class CopilotClient:
             session_id=session_id,
         )
         return session
+
+    async def start_ahp_host(self, options: AhpHostOptions | None = None) -> AhpHost:
+        """Start an experimental, connection-owned in-process AHP listener.
+
+        Factories preserve host-selected settings while adding application
+        callbacks. Stopping the host releases participation, not session ownership.
+        If canceled during startup, cleanup continues on the owning connection
+        and disposes the listener once startup settles.
+        """
+        if self._state != "connected":
+            await self.start()
+        if self._client is None:
+            raise RuntimeError("Client not connected")
+        return await self._ahp_hosts.start(self._client, options or AhpHostOptions())
 
     async def ping(self, message: str | None = None) -> PingResponse:
         """
@@ -4946,6 +4973,14 @@ class CopilotClient:
             self._options.installation_confirmation_handler,
         )
         self._installation_confirmation_adapter.register()
+        self._client.set_request_handler("host.materializeSession", self._ahp_hosts.materialize)
+        self._client.set_notification_method_handler(
+            "host.sessionReleased",
+            lambda params: self._ahp_hosts.notification("host.sessionReleased", params),
+        )
+        self._client.set_notification_method_handler(
+            "host.exited", lambda params: self._ahp_hosts.notification("host.exited", params)
+        )
 
     def _register_github_token_provider(
         self, provider: GitHubTokenProvider | None, session_id: str | None
@@ -4973,6 +5008,7 @@ class CopilotClient:
         if loop is not None and not loop.is_closed():
 
             def cancel_pending_external_tools() -> None:
+                self._ahp_hosts.disconnect()
                 if llm_inference_adapter is not None:
                     llm_inference_adapter.cancel_pending()
                 for session in sessions:

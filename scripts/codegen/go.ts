@@ -410,8 +410,8 @@ async function formatGoFile(filePath: string): Promise<void> {
     try {
         await execFileAsync("go", ["fmt", filePath]);
         console.log(`  ✓ Formatted with go fmt`);
-    } catch {
-        // go fmt not available, skip
+    } catch (cause) {
+        throw new Error(`Failed to format ${filePath}. Go is required for SDK generation; install the version specified in go/go.mod and ensure go is on PATH.`, { cause });
     }
 }
 
@@ -490,6 +490,9 @@ function goParamsTypeName(method: RpcMethod): string {
     const fallback = goRequestFallbackName(method);
     if (method.rpcMethod.startsWith("session.") && method.params?.$ref) {
         return fallback;
+    }
+    if (method.params?.$ref) {
+        return toPascalCase(refTypeName(method.params.$ref, rpcDefinitions));
     }
     return getRpcSchemaTypeName(getMethodParamsSchema(method), fallback);
 }
@@ -4429,7 +4432,7 @@ export function emitClientSessionApiRegistration(lines: string[], clientSchema: 
     lines.push(``);
 }
 
-function emitClientGlobalApiRegistration(lines: string[], clientSchema: Record<string, unknown>, resolveType: (name: string) => string, unionInfos: Map<string, GoDiscriminatedUnionInfo>): void {
+export function emitClientGlobalApiRegistration(lines: string[], clientSchema: Record<string, unknown>, resolveType: (name: string) => string, unionInfos: Map<string, GoDiscriminatedUnionInfo>): void {
     const groups = collectClientGroups(clientSchema);
 
     for (const { groupName, groupNode, methods } of groups) {

@@ -1,11 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { emitClientSessionApiRegistration as emitGoClientSessionApiRegistration } from "../../scripts/codegen/go.ts";
-import { emitClientSessionApiRegistration as emitPythonClientSessionApiRegistration } from "../../scripts/codegen/python.ts";
 import {
     emitClientGlobalApiRegistration as emitTypeScriptClientGlobalApiRegistration,
     emitClientSessionApiRegistration as emitTypeScriptClientSessionApiRegistration,
 } from "../../scripts/codegen/typescript.ts";
+import {
+    emitClientGlobalApiRegistration as emitGoClientGlobalApiRegistration,
+    emitClientSessionApiRegistration as emitGoClientSessionApiRegistration,
+} from "../../scripts/codegen/go.ts";
+import {
+    emitClientGlobalApiRegistration as emitPythonClientGlobalApiRegistration,
+    emitClientSessionApiRegistration as emitPythonClientSessionApiRegistration,
+} from "../../scripts/codegen/python.ts";
 
 const clientSessionSchema: Record<string, unknown> = {
     mixed: {
@@ -81,6 +87,51 @@ describe("client-session API codegen", () => {
             const code = emitTypeScriptClientGlobalApiRegistration(clientSessionSchema).join("\n");
             expectOnlyPublicClientSessionHandlers(code);
             expect(code).not.toContain("InternalOnlyHandler");
+        });
+    });
+
+    describe("client-global host API codegen", () => {
+        const schema = {
+            host: {
+                shutdown: {
+                    rpcMethod: "host.shutdown",
+                    visibility: "internal",
+                    params: { $ref: "#/definitions/HostEmptyResult" },
+                    result: { $ref: "#/definitions/HostEmptyResult" },
+                },
+                exited: {
+                    rpcMethod: "host.exited",
+                    params: { $ref: "#/definitions/HostExitedNotification" },
+                    result: { type: "null" },
+                    notification: true,
+                },
+            },
+        };
+
+        it("uses named request references for Go child and exit handlers", () => {
+            const lines: string[] = [];
+            emitGoClientGlobalApiRegistration(lines, schema, (name) => name, new Map());
+            const code = lines.join("\n");
+            expect(code).toContain('"host.exited"');
+            expect(code).toContain("request *HostEmptyResult");
+            expect(code).toContain("request *HostExitedNotification");
+            expect(code).not.toContain("HostShutdownRequest");
+        });
+
+        it("uses named Python exit references and dictionary child shutdown payloads", () => {
+            const lines: string[] = [];
+            emitPythonClientGlobalApiRegistration(lines, schema, (name) =>
+                name === "HostEmptyResult" ? "dict" : name
+            );
+            const code = lines.join("\n");
+            expect(code).toContain("request = HostExitedNotification.from_dict(params)");
+            expect(code).toContain('"host.exited"');
+            expect(code).not.toContain("HostExitedRequest");
+            expect(code).toContain("request = dict(params)");
+            expect(code).toContain("async def shutdown(self, params: dict) -> dict:");
+            expect(code).not.toContain("dict.from_dict");
+            expect(code).not.toContain("HostShutdownResult");
+            expect(code).not.toContain("HostShutdownRequest");
         });
     });
 

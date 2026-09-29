@@ -489,6 +489,7 @@ impl CreateEventLoop {
 /// without calling `destroy`, the `Drop` impl aborts the event loop and
 /// unregisters from the router as a best-effort safety net.
 pub struct Session {
+    ahp_creation_config: ParkingLotMutex<Option<serde_json::Value>>,
     id: SessionId,
     cwd: PathBuf,
     workspace_path: Option<PathBuf>,
@@ -539,6 +540,45 @@ pub struct Session {
 }
 
 impl Session {
+    pub(crate) fn validate_ahp_handoff(
+        &self,
+        client: &Client,
+        expected: &std::collections::HashMap<String, serde_json::Value>,
+        resume: bool,
+    ) -> Result<(), Error> {
+        let invalid = || {
+            Error::with_message(
+                ErrorKind::InvalidConfig,
+                "AHP callback must return the requested session from this client and preserve its configuration",
+            )
+        };
+        if !Arc::ptr_eq(&self.client.inner, &client.inner)
+            || self.shutdown.is_cancelled()
+            || !client
+                .inner
+                .router
+                .is_registered_owner(&self.id, self.registration_token)
+            || expected
+                .get("sessionId")
+                .and_then(serde_json::Value::as_str)
+                != Some(self.id.as_str())
+        {
+            return Err(invalid());
+        }
+        let actual = self.ahp_creation_config.lock().take();
+        // A retained original has no new materialization snapshot. The runtime
+        // validates its resident workspace without replacing application options.
+        if !(resume && actual.is_none()
+            || crate::ahp_host::contains_settings(
+                actual.as_ref(),
+                &serde_json::to_value(expected)?,
+            ))
+        {
+            return Err(invalid());
+        }
+        Ok(())
+    }
+
     /// Session ID assigned by the CLI.
     pub fn id(&self) -> &SessionId {
         &self.id
@@ -1493,6 +1533,16 @@ impl Client {
         shutdown: CancellationToken,
     ) -> Result<Session, Error> {
         let total_start = Instant::now();
+        let ahp_creation_config = if self
+            .inner
+            .ahp_host_sessions
+            .upgrade()
+            .is_some_and(|sessions| sessions.expects_session(config.session_id.as_ref()))
+        {
+            Some(crate::ahp_host::config_for_host(&config)?)
+        } else {
+            None
+        };
         // Non-cloud IDs are generated locally when omitted by the caller.
         // Start the loop before the RPC: session.create may issue
         // sessionFs.writeFile for workspace metadata before its response.
@@ -1632,7 +1682,7 @@ impl Client {
         let external_tools_shutdown = self.inner.rpc.connection_closed_token();
 
         let spawn_loop: EventLoopSpawner = {
-            let client = self.clone();
+            let client = Client::from_inner(self.inner.clone());
             let idle_waiter = idle_waiter.clone();
             let capabilities = capabilities.clone();
             let open_canvases = open_canvases.clone();
@@ -1782,11 +1832,12 @@ impl Client {
             "Client::create_session complete"
         );
         let session = Session {
+            ahp_creation_config: ParkingLotMutex::new(ahp_creation_config),
             id: session_id,
             cwd: self.cwd().clone(),
             workspace_path: create_result.workspace_path,
             remote_url: create_result.remote_url,
-            client: self.clone(),
+            client: Client::from_inner(self.inner.clone()),
             event_loop: ParkingLotMutex::new(Some(event_loop)),
             shutdown,
             external_tools_shutdown,
@@ -1826,6 +1877,16 @@ impl Client {
         shutdown: CancellationToken,
     ) -> Result<Session, Error> {
         let total_start = Instant::now();
+        let ahp_creation_config = if self
+            .inner
+            .ahp_host_sessions
+            .upgrade()
+            .is_some_and(|sessions| sessions.expects_session(Some(&config.session_id)))
+        {
+            Some(crate::ahp_host::resume_config_for_host(&config)?)
+        } else {
+            None
+        };
         let session_id = config.session_id.clone();
         if config.hooks_handler.is_some() && config.hooks.is_none() {
             config.hooks = Some(true);
@@ -1964,7 +2025,7 @@ impl Client {
         );
         let event_loop = spawn_event_loop(
             session_id.clone(),
-            self.clone(),
+            Client::from_inner(self.inner.clone()),
             handlers,
             hooks,
             transforms,
@@ -2071,11 +2132,12 @@ impl Client {
             "Client::resume_session complete"
         );
         let session = Session {
+            ahp_creation_config: ParkingLotMutex::new(ahp_creation_config),
             id: session_id,
             cwd: self.cwd().clone(),
             workspace_path: resume_result.workspace_path,
             remote_url: resume_result.remote_url,
-            client: self.clone(),
+            client: Client::from_inner(self.inner.clone()),
             event_loop: ParkingLotMutex::new(Some(event_loop)),
             shutdown,
             external_tools_shutdown,

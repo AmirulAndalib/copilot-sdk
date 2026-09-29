@@ -162,7 +162,9 @@ describe("materializeRuntimeBundle", () => {
         writeFileSync(wrapper, "wrapper");
         writeFileSync(runtimeNode, "runtime");
         mkdirSync(join(sourceDir, "ripgrep", "bin", platform), { recursive: true });
-        writeFileSync(join(sourceDir, "ripgrep", "bin", platform, "rg"), "ripgrep");
+        writeFileSync(join(sourceDir, "ripgrep", "bin", platform, "rg"), "ripgrep", {
+            mode: 0o755,
+        });
         mkdirSync(join(sourceDir, "definitions"), { recursive: true });
         writeFileSync(join(sourceDir, "definitions", "future.json"), "{}");
         mkdirSync(join(sourceDir, "copilot-sdk"), { recursive: true });
@@ -210,6 +212,9 @@ describe("materializeRuntimeBundle", () => {
         expect(existsSync(join(installDir, "README.md"))).toBe(false);
         if (process.platform !== "win32") {
             expect(statSync(installedWrapper).mode & 0o111).not.toBe(0);
+            expect(
+                statSync(join(installDir, "ripgrep", "bin", platform, "rg")).mode & 0o111
+            ).not.toBe(0);
         }
     });
 

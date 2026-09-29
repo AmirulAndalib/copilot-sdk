@@ -311,6 +311,11 @@ public final class ResumeSessionRequest {
         this.continuePendingWork = continuePendingWork;
     }
 
+    /** Restores the runtime's default pending-work continuation behavior. */
+    public void clearContinuePendingWork() {
+        continuePendingWork = null;
+    }
+
     /** Gets the reasoning effort. @return the reasoning effort level */
     public String getReasoningEffort() {
         return reasoningEffort;

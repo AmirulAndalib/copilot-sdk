@@ -1,10 +1,71 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
     applyPythonLegacyParameters,
+    emitMethod,
     generatePythonSessionEventsCode,
 } from "../../scripts/codegen/python.ts";
 import { legacyRequestSchema } from "./legacy-parameters-fixture.ts";
+
+describe("Python RPC projection compatibility", () => {
+    const code = readFileSync(
+        new URL("../../python/copilot/generated/rpc.py", import.meta.url),
+        "utf8"
+    );
+
+    it("preserves the existing Workflow checkpoint result API", () => {
+        const result = "SessionWorkflowPauseAtCheckpointResult";
+        expect(code).toContain(`class ${result}:`);
+        expect(code).toContain(`-> ${result}:`);
+        expect(code).toContain(`return ${result}.from_dict(`);
+        expect(code).toContain(`"${result}",`);
+    });
+
+    it("does not restore the retired Factory checkpoint aliases", () => {
+        expect(code).not.toContain("SessionFactoryPauseAtCheckpointResult");
+        expect(code).not.toContain('"session.factory.pauseAtCheckpoint"');
+    });
+
+    it("keeps named connection-scoped host callback results", () => {
+        expect(code).toContain(
+            "async def materialize_session(self, params: HostSessionCreateCallback) -> HostSessionCreateResult:"
+        );
+        expect(code).toContain(
+            "async def register_session(self, params: HostRegisterSessionRequest) -> HostPublishSessionResult:"
+        );
+        expect(code).toContain("class HostEmptyResult:");
+        expect(code).toContain(
+            "async def shutdown(self, params: HostEmptyResult) -> HostEmptyResult:"
+        );
+        expect(code).toContain(
+            'return HostEmptyResult.from_dict(await self._client.request("host.dispose"'
+        );
+        expect(code).not.toContain("dict.from_dict");
+    });
+});
+
+it("deserializes open empty-object results as dictionaries", () => {
+    const lines: string[] = [];
+    emitMethod(
+        lines,
+        "dispose",
+        {
+            rpcMethod: "host.dispose",
+            params: {
+                type: "object",
+                properties: { hostId: { type: "string" } },
+                required: ["hostId"],
+            },
+            result: { type: "object", properties: {} },
+        },
+        false,
+        (name) => (name === "HostDisposeResult" ? "dict" : name)
+    );
+    const code = lines.join("\n");
+    expect(code).toContain('return dict(await self._client.request("host.dispose"');
+    expect(code).not.toContain("dict.from_dict");
+});
 
 describe("Python root event payload unions", () => {
     it.each(["anyOf", "oneOf"] as const)("preserves referenced %s payload variants", (keyword) => {

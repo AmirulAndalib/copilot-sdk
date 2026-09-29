@@ -2120,6 +2120,17 @@ export type HistoryRewindOutcome =
   | "checkpoint-cleanup-failed"
   /** Files and conversation were rewound, but obsolete file snapshots could not be removed; only conversation-and-files rewinds produce this. */
   | "snapshot-prune-failed";
+
+/** @experimental */
+export type HostExitReason =
+  /** The owner requested disposal. */
+  | "disposed"
+  /** The hosting task or its SDK transport exited; this does not mean the runtime process exited. */
+  | "exited"
+  /** The owning SDK connection disconnected. */
+  | "ownerDisconnected"
+  /** The runtime is shutting down. */
+  | "runtimeShutdown";
 /**
  * Only resource kinds with an implemented installation engine have a review variant.
  *
@@ -11516,6 +11527,321 @@ export interface HooksDiscoverResult {
    * Errors for hook sources or actions that could not be loaded, making the result partially incomplete. Other valid actions are still returned. Project-resolution and repository-settings errors are prefixed with their project path.
    */
   errors: string[];
+}
+/**
+ * Normalized listener settings delivered only to the supervised hosting participant.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostConfiguration".
+ */
+/** @experimental */
+export interface HostConfiguration {
+  /**
+   * Hostname or IP address to bind.
+   */
+  hostname: string;
+  /**
+   * Port to bind, with zero requesting OS allocation.
+   */
+  port: number;
+  /**
+   * Secret connection token, absent when authentication is disabled.
+   */
+  token?: string;
+  /**
+   * Whether the listener requires token authentication.
+   */
+  requireConnectionToken: boolean;
+  /**
+   * Whether session materialization is delegated to the owning application.
+   */
+  sessionFactory?: boolean;
+  /**
+   * Whether app-owned durable sessions are resumed by the owning application.
+   */
+  resumeFactory?: boolean;
+}
+/**
+ * Stops a connection-owned listener and joins its teardown.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostDisposeRequest".
+ */
+/** @experimental */
+export interface HostDisposeRequest {
+  /**
+   * Listener UUID. Unknown or successfully stopped IDs are harmless.
+   */
+  hostId: string;
+}
+/**
+ * Empty acknowledgement for a completed host lifecycle operation.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostEmptyResult".
+ */
+/** @experimental */
+export interface HostEmptyResult {}
+/**
+ * Reports a supervised listener's hosting-task termination and cleanup outcome.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostExitedNotification".
+ */
+/** @experimental */
+export interface HostExitedNotification {
+  /**
+   * Listener UUID.
+   */
+  hostId: string;
+  reason: HostExitReason;
+  /**
+   * Process exit status when available; absent for in-process listener tasks.
+   */
+  exitCode?: number | null;
+  /**
+   * Explicit startup or teardown failure, when present.
+   */
+  error?: string | null;
+}
+/**
+ * Publishes a resident session attached to the listener's owning connection.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostPublishSessionRequest".
+ */
+/** @experimental */
+export interface HostPublishSessionRequest {
+  /**
+   * Listener UUID returned by host.start.
+   */
+  hostId: string;
+  /**
+   * Canonical runtime session ID attached to the listener's owning connection.
+   */
+  sessionId: string;
+}
+/**
+ * The existing runtime identity and its resource on the listener.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostPublishSessionResult".
+ */
+/** @experimental */
+export interface HostPublishSessionResult {
+  /**
+   * Canonical runtime ID of the published session.
+   */
+  sessionId: string;
+  /**
+   * AHP resource URI for the session on this listener.
+   */
+  sessionUri: string;
+}
+/**
+ * Readiness reported by the supervised hosting participant on its own SDK connection.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostReadyRequest".
+ */
+/** @experimental */
+export interface HostReadyRequest {
+  /**
+   * Actual bound WebSocket URL.
+   */
+  address: string;
+  /**
+   * Configured secret token, absent when authentication is disabled.
+   */
+  token?: string;
+}
+/**
+ * Listener-scoped registration, not a copy or durable adoption of a session.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostRegisterSessionRequest".
+ */
+/** @experimental */
+export interface HostRegisterSessionRequest {
+  /**
+   * Canonical ID of the existing resident runtime session.
+   */
+  sessionId: string;
+  /**
+   * Absolute working directory of the resident session.
+   */
+  workingDirectory: string;
+  /**
+   * Additional directories already granted to the resident session.
+   */
+  additionalDirectories?: string[];
+  /**
+   * Current display title of the resident session, when available.
+   */
+  title?: string;
+  /**
+   * Session creation time in milliseconds since the Unix epoch, when available.
+   */
+  createdAtUnixMs?: number;
+  /**
+   * Last session modification time in milliseconds since the Unix epoch, when available.
+   */
+  modifiedAtUnixMs?: number;
+}
+/**
+ * Application callback routed over its existing SDK connection.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostSessionCreateCallback".
+ */
+/** @experimental */
+export interface HostSessionCreateCallback {
+  /**
+   * Listener UUID identifying the owning application's host.
+   */
+  hostId: string;
+  /**
+   * Unique identity of the session participation being requested.
+   */
+  handoffId: string;
+  /**
+   * Resume an app-owned durable session instead of creating a new session.
+   */
+  resume?: boolean;
+  /**
+   * Host-selected SDK creation or resume settings, without executable callbacks or tools.
+   */
+  config: {
+    [k: string]: unknown | undefined;
+  };
+}
+/**
+ * One application-owned session handoff, requested by the supervised hosting participant.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostSessionCreateRequest".
+ */
+/** @experimental */
+export interface HostSessionCreateRequest {
+  /**
+   * Unique identity for this participation, independent of the session lifetime.
+   */
+  handoffId: string;
+  /**
+   * Resume an app-owned durable session instead of creating a new session.
+   */
+  resume?: boolean;
+  /**
+   * Host-selected SDK creation or resume settings, without executable callbacks or tools.
+   */
+  config: {
+    [k: string]: unknown | undefined;
+  };
+}
+/**
+ * The resident session the application has materialized on its own connection.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostSessionCreateResult".
+ */
+/** @experimental */
+export interface HostSessionCreateResult {
+  /**
+   * Runtime session UUID materialized on the application's SDK connection.
+   */
+  sessionId: string;
+}
+/**
+ * Releases the original application session object retained for one handoff.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostSessionReleasedNotification".
+ */
+/** @experimental */
+export interface HostSessionReleasedNotification {
+  /**
+   * Listener UUID whose application session participation ended.
+   */
+  hostId: string;
+  /**
+   * Identity of the handoff retaining the original application session object.
+   */
+  handoffId: string;
+}
+/**
+ * Ends one participation, not the application's session lifetime.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostSessionReleaseRequest".
+ */
+/** @experimental */
+export interface HostSessionReleaseRequest {
+  /**
+   * Identity of the participation to release without destroying the session.
+   */
+  handoffId: string;
+}
+/**
+ * Starts a supervised AHP listener in the runtime's configured working directory.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostStartRequest".
+ */
+/** @experimental */
+export interface HostStartRequest {
+  /**
+   * Caller-generated UUID identifying this connection-owned listener.
+   */
+  hostId: string;
+  /**
+   * Listener hostname. Defaults to 127.0.0.1; explicit non-loopback binds are allowed.
+   */
+  hostname?: string;
+  /**
+   * Listener port. Omitted or zero requests an OS-allocated port.
+   */
+  port?: number;
+  /**
+   * Nonempty connection token. Generated randomly when required and omitted.
+   */
+  token?: string;
+  /**
+   * Require token authentication (default true). Cannot be false with a token.
+   */
+  requireConnectionToken?: boolean;
+  /**
+   * Ask the owning SDK application to materialize AHP sessions.
+   */
+  sessionFactory?: boolean;
+  /**
+   * Ask the owning application to resume its durable AHP sessions.
+   */
+  resumeFactory?: boolean;
+}
+/**
+ * Listener readiness, returned only after binding and the supervised participant's SDK handshake.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostStartResult".
+ */
+/** @experimental */
+export interface HostStartResult {
+  /**
+   * Caller-generated listener UUID.
+   */
+  hostId: string;
+  /**
+   * Actual bound WebSocket URL, including the allocated port.
+   */
+  url: string;
+  /**
+   * Secret connection token, absent when authentication is disabled.
+   */
+  token?: string;
+  /**
+   * Separate host process ID, when provided by a legacy runtime. Absent for in-process listeners.
+   */
+  pid?: number;
 }
 /**
  * Catalogue identity retained from a bound candidate or plan at installation time.
@@ -28240,6 +28566,112 @@ export interface WorkspacesWriteAutopilotObjectiveResult {
    */
   operation: string;
 }
+/**
+ * The resident session the application has materialized on its own connection.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostCreateSessionResult".
+ */
+/** @experimental */
+export interface HostCreateSessionResult {
+  /**
+   * Runtime session UUID materialized on the application's SDK connection.
+   */
+  sessionId: string;
+}
+/**
+ * One application-owned session handoff, requested by the supervised hosting participant.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostCreateSessionRequest".
+ */
+/** @experimental */
+export interface HostCreateSessionRequest {
+  /**
+   * Unique identity for this participation, independent of the session lifetime.
+   */
+  handoffId: string;
+  /**
+   * Resume an app-owned durable session instead of creating a new session.
+   */
+  resume?: boolean;
+  /**
+   * Host-selected SDK creation or resume settings, without executable callbacks or tools.
+   */
+  config: {
+    [k: string]: unknown | undefined;
+  };
+}
+/**
+ * Empty acknowledgement for a completed host lifecycle operation.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostReleaseSessionResult".
+ */
+/** @experimental */
+export interface HostReleaseSessionResult {}
+/**
+ * Ends one participation, not the application's session lifetime.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostReleaseSessionRequest".
+ */
+/** @experimental */
+export interface HostReleaseSessionRequest {
+  /**
+   * Identity of the participation to release without destroying the session.
+   */
+  handoffId: string;
+}
+/**
+ * Empty acknowledgement for a completed host lifecycle operation.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostDisposeResult".
+ */
+/** @experimental */
+export interface HostDisposeResult {}
+/**
+ * Normalized listener settings delivered only to the supervised hosting participant.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostGetConfigurationResult".
+ */
+/** @experimental */
+export interface HostGetConfigurationResult {
+  /**
+   * Hostname or IP address to bind.
+   */
+  hostname: string;
+  /**
+   * Port to bind, with zero requesting OS allocation.
+   */
+  port: number;
+  /**
+   * Secret connection token, absent when authentication is disabled.
+   */
+  token?: string;
+  /**
+   * Whether the listener requires token authentication.
+   */
+  requireConnectionToken: boolean;
+  /**
+   * Whether session materialization is delegated to the owning application.
+   */
+  sessionFactory?: boolean;
+  /**
+   * Whether app-owned durable sessions are resumed by the owning application.
+   */
+  resumeFactory?: boolean;
+}
+/**
+ * Empty acknowledgement for a completed host lifecycle operation.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostReadyResult".
+ */
+/** @experimental */
+export interface HostReadyResult {}
 
 /** @experimental */
 export interface SessionWorkflowPauseAtCheckpointResult {
@@ -28462,6 +28894,110 @@ export interface SessionFsSqliteExistsRequest {
   sessionId: string;
 }
 /**
+ * The existing runtime identity and its resource on the listener.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostRegisterSessionResult".
+ */
+/** @experimental */
+export interface HostRegisterSessionResult {
+  /**
+   * Canonical runtime ID of the published session.
+   */
+  sessionId: string;
+  /**
+   * AHP resource URI for the session on this listener.
+   */
+  sessionUri: string;
+}
+/**
+ * The resident session the application has materialized on its own connection.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostMaterializeSessionResult".
+ */
+/** @experimental */
+export interface HostMaterializeSessionResult {
+  /**
+   * Runtime session UUID materialized on the application's SDK connection.
+   */
+  sessionId: string;
+}
+/**
+ * Application callback routed over its existing SDK connection.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostMaterializeSessionRequest".
+ */
+/** @experimental */
+export interface HostMaterializeSessionRequest {
+  /**
+   * Listener UUID identifying the owning application's host.
+   */
+  hostId: string;
+  /**
+   * Unique identity of the session participation being requested.
+   */
+  handoffId: string;
+  /**
+   * Resume an app-owned durable session instead of creating a new session.
+   */
+  resume?: boolean;
+  /**
+   * Host-selected SDK creation or resume settings, without executable callbacks or tools.
+   */
+  config: {
+    [k: string]: unknown | undefined;
+  };
+}
+/**
+ * Releases the original application session object retained for one handoff.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostSessionReleasedRequest".
+ */
+/** @experimental */
+export interface HostSessionReleasedRequest {
+  /**
+   * Listener UUID whose application session participation ended.
+   */
+  hostId: string;
+  /**
+   * Identity of the handoff retaining the original application session object.
+   */
+  handoffId: string;
+}
+/**
+ * Empty acknowledgement for a completed host lifecycle operation.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostShutdownResult".
+ */
+/** @experimental */
+export interface HostShutdownResult {}
+/**
+ * Reports a supervised listener's hosting-task termination and cleanup outcome.
+ *
+ * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
+ * via the `definition` "HostExitedRequest".
+ */
+/** @experimental */
+export interface HostExitedRequest {
+  /**
+   * Listener UUID.
+   */
+  hostId: string;
+  reason: HostExitReason;
+  /**
+   * Process exit status when available; absent for in-process listener tasks.
+   */
+  exitCode?: number | null;
+  /**
+   * Explicit startup or teardown failure, when present.
+   */
+  error?: string | null;
+}
+/**
  * A response is meaningful only on the connection and request that issued its challenge.
  *
  * This interface was referenced by `_RpcSchemaRoot`'s JSON-Schema
@@ -28514,6 +29050,36 @@ export interface InstallationsConfirmRequest {
 /** Create typed server-scoped RPC methods (no session required). */
 export function createServerRpc(connection: MessageConnection) {
     return {
+        /** @experimental */
+        host: {
+            /**
+             * Publishes an attached resident session for this listener's lifetime without copying it.
+             *
+             * @param params Publishes a resident session attached to the listener's owning connection.
+             *
+             * @returns The existing runtime identity and its resource on the listener.
+             */
+            publishSession: async (params: HostPublishSessionRequest): Promise<HostPublishSessionResult> =>
+                connection.sendRequest("host.publishSession", params),
+            /**
+             * Starts a connection-owned local AHP listener as a supervised SDK participant.
+             *
+             * @param params Starts a supervised AHP listener in the runtime's configured working directory.
+             *
+             * @returns Listener readiness, returned only after binding and the supervised participant's SDK handshake.
+             */
+            start: async (params: HostStartRequest): Promise<HostStartResult> =>
+                connection.sendRequest("host.start", params),
+            /**
+             * Stops a listener owned by this SDK connection and joins its cleanup without deleting sessions.
+             *
+             * @param params Stops a connection-owned listener and joins its teardown.
+             *
+             * @returns Empty acknowledgement for a completed host lifecycle operation.
+             */
+            dispose: async (params: HostDisposeRequest): Promise<HostDisposeResult> =>
+                connection.sendRequest("host.dispose", params),
+        },
         /**
          * Checks server responsiveness and returns protocol information.
          *
@@ -29454,6 +30020,43 @@ export function createServerRpc(connection: MessageConnection) {
  */
 export function createInternalServerRpc(connection: MessageConnection) {
     return {
+        /** @experimental */
+        host: {
+            /**
+             * Requests app-owned materialization over the owning SDK participant.
+             *
+             * @param params One application-owned session handoff, requested by the supervised hosting participant.
+             *
+             * @returns The resident session the application has materialized on its own connection.
+             */
+            createSession: async (params: HostCreateSessionRequest): Promise<HostCreateSessionResult> =>
+                connection.sendRequest("host.createSession", params),
+            /**
+             * Releases app ownership retention after AHP detaches.
+             *
+             * @param params Ends one participation, not the application's session lifetime.
+             *
+             * @returns Empty acknowledgement for a completed host lifecycle operation.
+             */
+            releaseSession: async (params: HostReleaseSessionRequest): Promise<HostReleaseSessionResult> =>
+                connection.sendRequest("host.releaseSession", params),
+            /**
+             * Returns listener settings only to the supervised hosting participant over its SDK connection.
+             *
+             * @returns Normalized listener settings delivered only to the supervised hosting participant.
+             */
+            getConfiguration: async (): Promise<HostGetConfigurationResult> =>
+                connection.sendRequest("host.getConfiguration", {}),
+            /**
+             * Reports a supervised hosting participant's bound AHP endpoint after its SDK handshake.
+             *
+             * @param params Readiness reported by the supervised hosting participant on its own SDK connection.
+             *
+             * @returns Empty acknowledgement for a completed host lifecycle operation.
+             */
+            ready: async (params: HostReadyRequest): Promise<HostReadyResult> =>
+                connection.sendRequest("host.ready", params),
+        },
         /**
          * Performs the SDK server connection handshake and validates the optional connection token. Marked internal because this is JSON-RPC transport plumbing invoked automatically by an SDK client's own `connect()` wrapper, not a user-facing method. Stays internal as long as the SDK client owns the handshake; would only become public if the SDK ever exposed the raw schema surface to consumers without a connection wrapper.
          *
@@ -32569,6 +33172,17 @@ export function registerClientSessionApiHandlers(
     });
 }
 
+/** Handler for `host` client global API methods. */
+/** @experimental */
+export interface HostHandler {
+    /**
+     * Reports termination of a connection-owned host listener.
+     *
+     * @param params Reports a supervised listener's hosting-task termination and cleanup outcome.
+     */
+    exited(params: HostExitedRequest): Promise<void>;
+}
+
 /** Handler for `extensionLaunchProvider` client global API methods. */
 /** @experimental */
 export interface ExtensionLaunchProviderHandler {
@@ -32642,6 +33256,7 @@ export interface InstallationsHandler {
 
 /** All client global API handler groups. */
 export interface ClientGlobalApiHandlers {
+    host?: HostHandler;
     extensionLaunchProvider?: ExtensionLaunchProviderHandler;
     llmInference?: LlmInferenceHandler;
     gitHubTelemetry?: GitHubTelemetryHandler;
@@ -32660,6 +33275,11 @@ export function registerClientGlobalApiHandlers(
     connection: MessageConnection,
     handlers: ClientGlobalApiHandlers,
 ): void {
+    connection.onNotification("host.exited", async (params: HostExitedRequest) => {
+        const handler = handlers.host;
+        if (!handler) return;
+        await handler.exited(params);
+    });
     connection.onRequest("extensionLaunchProvider.resolve", async (params: ExtensionLaunchProviderResolveRequest) => {
         const handler = handlers.extensionLaunchProvider;
         if (!handler) throw new Error("No extensionLaunchProvider client-global handler registered");

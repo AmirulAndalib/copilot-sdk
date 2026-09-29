@@ -94,6 +94,17 @@ impl SessionRouter {
         self.sessions.lock().remove(session_id.as_str());
     }
 
+    pub(crate) fn is_registered_owner(
+        &self,
+        session_id: &SessionId,
+        token: RegistrationToken,
+    ) -> bool {
+        self.sessions
+            .lock()
+            .get(session_id.as_str())
+            .is_some_and(|senders| senders.token == token)
+    }
+
     /// Unregister a session only if it is still the registration identified
     /// by `token`.
     ///

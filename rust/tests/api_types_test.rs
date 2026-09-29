@@ -62,6 +62,23 @@ fn operation_status_preserves_required_phases_and_original_identity() {
 }
 
 #[test]
+fn host_start_round_trips_absent_and_legacy_child_pid() {
+    for pid in [None, Some(1234)] {
+        let mut wire = serde_json::json!({
+            "hostId": "host",
+            "url": "ws://127.0.0.1:4321"
+        });
+        if let Some(pid) = pid {
+            wire["pid"] = serde_json::json!(pid);
+        }
+        let host: github_copilot_sdk::rpc::HostStartResult =
+            serde_json::from_value(wire.clone()).unwrap();
+        assert_eq!(host.pid, pid);
+        assert_eq!(serde_json::to_value(host).unwrap(), wire);
+    }
+}
+
+#[test]
 fn operation_status_refuses_unknown_phases_and_incomplete_terminal_results() {
     let original = serde_json::json!({
         "phase": "completed",
